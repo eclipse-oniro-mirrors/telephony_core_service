@@ -1225,5 +1225,58 @@ bool CoreService::IsMultiSimsCapabilitySupported(int32_t slotId)
 {
     return MultiSimsCapabilityMgr::IsMultiSimsCapabilitySupported(slotId);
 }
+
+int32_t CoreService::StartHiddenCameraDetection(
+    const sptr<IHiddenCameraDetectionCallback> &callback, const HiddenCameraDetectionConfig &config,
+    const sptr<IRawParcelCallback> &rawCallback)
+{
+    if (!TelephonyPermission::CheckPermission(Permission::HIDDEN_CAMERA_DETECTION)) {
+        TELEPHONY_LOGE("StartHiddenCameraDetection permission denied!");
+        return TELEPHONY_ERR_PERMISSION_ERR;
+    }
+    int32_t ret = TELEPHONY_ERR_FAIL;
+    if (TELEPHONY_EXT_WRAPPER.startHiddenCameraDetectionExt_ == nullptr) {
+        TELEPHONY_LOGE("startHiddenCameraDetectionExt_ is nullptr!");
+    } else {
+        ret = TELEPHONY_EXT_WRAPPER.startHiddenCameraDetectionExt_(callback, config, rawCallback);
+    }
+    MessageParcel dataTmp;
+    rawCallback->Transfer([ret](MessageParcel &parcel) { parcel.WriteInt32(ret); }, dataTmp);
+    return ret;
+}
+
+int32_t CoreService::StopHiddenCameraDetection(const sptr<IRawParcelCallback> &rawCallback)
+{
+    if (!TelephonyPermission::CheckPermission(Permission::HIDDEN_CAMERA_DETECTION)) {
+        TELEPHONY_LOGE("StopHiddenCameraDetection permission denied!");
+        return TELEPHONY_ERR_PERMISSION_ERR;
+    }
+    int32_t ret = TELEPHONY_ERR_FAIL;
+    if (TELEPHONY_EXT_WRAPPER.stopHiddenCameraDetectionExt_ == nullptr) {
+        TELEPHONY_LOGE("stopHiddenCameraDetectionExt_ is nullptr!");
+    } else {
+        ret = TELEPHONY_EXT_WRAPPER.stopHiddenCameraDetectionExt_(rawCallback);
+    }
+    MessageParcel dataTmp;
+    rawCallback->Transfer([ret](MessageParcel &parcel) { parcel.WriteInt32(ret); }, dataTmp);
+    return ret;
+}
+
+int32_t CoreService::KeepHiddenCameraDetection(const sptr<IRawParcelCallback> &rawCallback)
+{
+    if (!TelephonyPermission::CheckPermission(Permission::HIDDEN_CAMERA_DETECTION)) {
+        TELEPHONY_LOGE("KeepHiddenCameraDetection permission denied!");
+        return TELEPHONY_ERR_PERMISSION_ERR;
+    }
+    int32_t ret = TELEPHONY_ERR_FAIL;
+    if (TELEPHONY_EXT_WRAPPER.keepHiddenCameraDetectionExt_ == nullptr) {
+        TELEPHONY_LOGE("keepHiddenCameraDetectionExt_ is nullptr!");
+    } else {
+        ret = TELEPHONY_EXT_WRAPPER.keepHiddenCameraDetectionExt_(rawCallback);
+    }
+    MessageParcel dataTmp;
+    rawCallback->Transfer([ret](MessageParcel &parcel) { parcel.WriteInt32(ret); }, dataTmp);
+    return ret;
+}
 } // namespace Telephony
 } // namespace OHOS

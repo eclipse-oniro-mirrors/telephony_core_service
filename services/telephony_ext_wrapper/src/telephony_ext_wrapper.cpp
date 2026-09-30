@@ -60,6 +60,7 @@ void TelephonyExtWrapper::InitTelephonyExtWrapper()
     InitTelephonyExtWrapperForVSim();
     InitTelephonyExtWrapperForOpkeyVersion();
     InitTelephonyExtWrapperForOpnameVersion();
+    InitTelephonyExtWrapperForSense();
     TELEPHONY_LOGI("telephony ext wrapper init success");
 }
 
@@ -448,6 +449,28 @@ bool TelephonyExtWrapper::GetSimLabelIndexFromLsiCfg(int32_t slotId, int32_t &si
         return getSimLabelIndexFromLsiCfg_(slotId, simLabelindex);
     }
     return false;
+}
+
+void TelephonyExtWrapper::InitTelephonyExtWrapperForSense()
+{
+    startHiddenCameraDetectionExt_ = reinterpret_cast<StartHiddenCameraDetectionExtFunc>(
+        dlsym(telephonyExtWrapperHandle_, "StartHiddenCameraDetectionExt"));
+    if (startHiddenCameraDetectionExt_ == nullptr) {
+        TELEPHONY_LOGE("StartHiddenCameraDetectionExt dlsym failed, error: %{public}s", dlerror());
+        return;
+    }
+    stopHiddenCameraDetectionExt_ = reinterpret_cast<StopHiddenCameraDetectionExtFunc>(
+        dlsym(telephonyExtWrapperHandle_, "StopHiddenCameraDetectionExt"));
+    if (stopHiddenCameraDetectionExt_ == nullptr) {
+        TELEPHONY_LOGE("StopHiddenCameraDetectionExt dlsym failed, error: %{public}s", dlerror());
+        return;
+    }
+    keepHiddenCameraDetectionExt_ = reinterpret_cast<KeepHiddenCameraDetectionExtFunc>(
+        dlsym(telephonyExtWrapperHandle_, "KeepHiddenCameraDetectionExt"));
+    if (keepHiddenCameraDetectionExt_ == nullptr) {
+        TELEPHONY_LOGE("KeepHiddenCameraDetectionExt dlsym failed, error: %{public}s", dlerror());
+        return;
+    }
 }
 } // namespace Telephony
 } // namespace OHOS
