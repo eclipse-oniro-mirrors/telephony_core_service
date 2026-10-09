@@ -62,6 +62,7 @@ public:
      * @return int32_t TELEPHONY_SUCCESS on success, others on failure.
      */
     int32_t UpdateVoIPCallState(const VoIPCallStateInfo &info);
+#ifdef TELEPHONY_CALL_TRANSFER_STATUS_REPORT
     /**
      * @brief Update call transfer status
      *
@@ -71,6 +72,7 @@ public:
      */
 
     int32_t UpdateCallTransferStatus(int32_t slotId, bool enabled);
+#endif
     /**
      * @brief Update signal information
      *

@@ -27,6 +27,9 @@ declare_args() {
   core_service_satellite = false
 }
 
+core_service_call_transfer_status_report =
+    (target_platform == "phone" || target_platform == "tablet")
+
 telephony_extra_defines = []
 
 if (defined(global_parts_info) &&
@@ -37,6 +40,11 @@ if (defined(global_parts_info) &&
 
 if (core_service_support_esim) {
   telephony_extra_defines += [ "CORE_SERVICE_SUPPORT_ESIM" ]
+}
+
+if (core_service_call_transfer_status_report) {
+  print("core_service support call transfer status report")
+  telephony_extra_defines += [ "TELEPHONY_CALL_TRANSFER_STATUS_REPORT" ]
 }
 
 if (core_service_satellite) {
