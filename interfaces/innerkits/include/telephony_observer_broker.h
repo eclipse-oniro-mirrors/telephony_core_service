@@ -69,9 +69,7 @@ public:
         int32_t slotId, int32_t callState, const std::u16string &phoneNumber) = 0;
     virtual void OnSimActiveStateUpdated(int32_t slotId, bool enable) = 0;
     virtual void OnVoIPStateUpdated(const VoIPCallStateInfo &info) = 0;
-#ifdef TELEPHONY_CALL_TRANSFER_STATUS_REPORT
     virtual void OnCallTransferStatusUpdated(int32_t slotId, bool enabled) = 0;
-#endif
 
 public:
     static const uint32_t OBSERVER_MASK_NETWORK_STATE = 0x00000001;

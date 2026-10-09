@@ -495,7 +495,6 @@ int32_t TelephonyStateRegistryProxy::UpdateVoIPCallState(const VoIPCallStateInfo
     return TELEPHONY_ERR_IPC_CONNECT_STUB_FAIL;
 }
 
-#ifdef TELEPHONY_CALL_TRANSFER_STATUS_REPORT
 int32_t TelephonyStateRegistryProxy::UpdateCallTransferStatus(int32_t slotId, bool enabled)
 {
     MessageOption option;
@@ -522,6 +521,5 @@ int32_t TelephonyStateRegistryProxy::UpdateCallTransferStatus(int32_t slotId, bo
     }
     return TELEPHONY_ERR_IPC_CONNECT_STUB_FAIL;
 }
-#endif
 } // namespace Telephony
 } // namespace OHOS

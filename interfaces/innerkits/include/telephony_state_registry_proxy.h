@@ -53,9 +53,7 @@ public:
     int32_t UpdateIccAccount() override;
     int32_t UpdateSimActiveState(int32_t slotId, bool activeStateResult) override;
     int32_t UpdateVoIPCallState(const VoIPCallStateInfo &info) override;
-#ifdef TELEPHONY_CALL_TRANSFER_STATUS_REPORT
     int32_t UpdateCallTransferStatus(int32_t slotId, bool enabled) override;
-#endif
 
     int32_t RegisterStateChange(const sptr<TelephonyObserverBroker> &telephonyObserver,
         int32_t slotId, uint32_t mask, bool isUpdate) override;

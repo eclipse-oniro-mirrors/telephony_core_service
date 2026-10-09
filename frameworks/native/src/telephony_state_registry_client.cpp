@@ -215,8 +215,7 @@ int32_t TelephonyStateRegistryClient::UpdateVoIPCallState(const VoIPCallStateInf
     }
     return proxy->UpdateVoIPCallState(info);
 }
-
-#ifdef TELEPHONY_CALL_TRANSFER_STATUS_REPORT
+    
 int32_t TelephonyStateRegistryClient::UpdateCallTransferStatus(int32_t slotId, bool enabled)
 {
     auto proxy = GetProxy();
@@ -226,7 +225,6 @@ int32_t TelephonyStateRegistryClient::UpdateCallTransferStatus(int32_t slotId, b
     }
     return proxy->UpdateCallTransferStatus(slotId, enabled);
 }
-#endif
 } // namespace Telephony
 }
 
