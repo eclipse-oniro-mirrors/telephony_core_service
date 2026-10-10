@@ -29,7 +29,6 @@
 #include "str_convert.h"
 #include "string_ex.h"
 #include "tel_profile_util.h"
-#include "preferences_errno.h"
 
 namespace OHOS {
 namespace Telephony {
