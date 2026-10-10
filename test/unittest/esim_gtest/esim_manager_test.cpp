@@ -571,7 +571,6 @@ HWTEST_F(EsimManagerTest, RegisterCoreNotify_001, Function | MediumTest | Level1
     esimManager->RegisterCoreNotify(0, nullptr, RADIO_ESIM_ENABLING_PROFLIE_START);
     esimManager->RegisterCoreNotify(-1, handler, RADIO_ESIM_ENABLING_PROFLIE_START);
     esimManager->RegisterCoreNotify(0, handler, RADIO_ESIM_ENABLING_PROFLIE_START);
-    esimManager->enabledProfileNum_ = 2;
     esimManager->RegisterCoreNotify(0, handler, RADIO_ESIM_ENABLED_PROFILE_NUM);
     EXPECT_NE(esimManager->observerHandler_, nullptr);
 }
