@@ -316,7 +316,7 @@ HWTEST_F(Asn1UtilsTest, CountTrailingZeros_001, Function | MediumTest | Level3)
 
     b = 6;
     res = Asn1Utils::CountTrailingZeros(b);
-    EXPECT_TRUE(ret == 2);
+    EXPECT_TRUE(ret == 1);
 
     b = 8;
     res = Asn1Utils::CountTrailingZeros(b);
