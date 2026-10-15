@@ -1034,5 +1034,65 @@ HWTEST_F(SimManagerTest, SetSpecifiedIccidBySlotId_001, Function | MediumTest | 
     simManager->SetSpecifiedIccidBySlotId(0, iccid);
     EXPECT_FALSE(simManager->simStateManager_.empty());
 }
+
+/**
+ * @tc.number: SimManager_UpdateDBActiveByIccId_001
+ * @tc.name: Test UpdateDBActiveByIccId with null multiSimController_
+ * @tc.desc: Verify returns TELEPHONY_ERR_LOCAL_PTR_NULL when multiSimController_ is nullptr
+ */
+HWTEST_F(SimManagerTest, SimManager_UpdateDBActiveByIccId_001, Function | MediumTest | Level1)
+{
+    const std::string iccId = "89860000000000000001";
+    const int32_t enable = 1;
+    // multiSimController_ is nullptr, should return TELEPHONY_ERR_LOCAL_PTR_NULL
+    simManager_->multiSimController_ = nullptr;
+    int32_t result = simManager_->UpdateDBActiveByIccId(iccId, enable);
+    EXPECT_EQ(result, TELEPHONY_ERR_LOCAL_PTR_NULL);
+}
+ 
+/**
+ * @tc.number: SimManager_UpdateDBActiveByIccId_002
+ * @tc.name: Test UpdateDBActiveByIccId delegates to multiSimController_
+ * @tc.desc: Verify that SimManager::UpdateDBActiveByIccId forwards the call to
+ *           MultiSimController::UpdateDBActiveByIccId and returns its result
+ *           (null simDbHelper_, database write failure and success cases)
+ */
+HWTEST_F(SimManagerTest, SimManager_UpdateDBActiveByIccId_002, Function | MediumTest | Level1)
+{
+    std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
+    auto simStateManagerPtr = std::make_shared<SimStateManager>(telRilManager);
+    auto telRilManagerWeak = std::weak_ptr<TelRilManager>(telRilManager);
+    auto simFileManagerPtr = std::make_shared<Telephony::SimFileManager>(
+        telRilManagerWeak, std::weak_ptr<Telephony::SimStateManager>(simStateManagerPtr));
+    std::vector<std::shared_ptr<Telephony::SimStateManager>> simStateManager = { simStateManagerPtr,
+        simStateManagerPtr };
+    std::vector<std::shared_ptr<Telephony::SimFileManager>> simFileManager = { simFileManagerPtr, simFileManagerPtr };
+    std::shared_ptr<Telephony::MultiSimController> multiSimController =
+        std::make_shared<MultiSimController>(telRilManager, simStateManager, simFileManager);
+    simManager_->multiSimController_ = multiSimController;
+ 
+    const std::string iccId = "89860000000000000001";
+    const int32_t enable = 1;
+    // controller simDbHelper_ is nullptr, delegation returns TELEPHONY_ERR_LOCAL_PTR_NULL
+    multiSimController->simDbHelper_ = nullptr;
+    int32_t result = simManager_->UpdateDBActiveByIccId(iccId, enable);
+    EXPECT_EQ(result, TELEPHONY_ERR_LOCAL_PTR_NULL);
+ 
+    // UpdateDataByIccId fails, delegation returns TELEPHONY_ERR_DATABASE_WRITE_FAIL
+    auto mockSimRdbHelperFail = std::make_unique<MockSimRdbHelper>();
+    EXPECT_CALL(*mockSimRdbHelperFail, UpdateDataByIccId(iccId, _)).WillOnce(Return(INVALID_VALUE));
+    multiSimController->simDbHelper_ = std::move(mockSimRdbHelperFail);
+    result = simManager_->UpdateDBActiveByIccId(iccId, enable);
+    EXPECT_EQ(result, TELEPHONY_ERR_DATABASE_WRITE_FAIL);
+ 
+    // UpdateDataByIccId succeeds, delegation returns TELEPHONY_ERR_SUCCESS
+    auto mockSimRdbHelper = std::make_unique<MockSimRdbHelper>();
+    EXPECT_CALL(*mockSimRdbHelper, UpdateDataByIccId(iccId, _)).WillOnce(Return(0));
+    multiSimController->simDbHelper_ = std::move(mockSimRdbHelper);
+    result = simManager_->UpdateDBActiveByIccId(iccId, enable);
+    EXPECT_EQ(result, TELEPHONY_ERR_SUCCESS);
+ 
+    simManager_->multiSimController_ = nullptr;
+}
 }
 }
