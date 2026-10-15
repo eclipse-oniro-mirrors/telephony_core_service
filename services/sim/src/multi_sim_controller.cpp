@@ -166,6 +166,9 @@ bool MultiSimController::ForgetAllData(int32_t slotId)
         isNeedUpdateSimLabel = !IsSimSlotsMapping() && !(slotId == 1 && simLabelState != PSIM1_PSIM2) &&
                                  !IsEsim(slotId) && !isSimSlotsMapping_[slotId];
     }
+    if (tstsMode_ && slotId == SIM_SLOT_2) {
+        isNeedUpdateSimLabel = true;
+    }
     bool isUpdateActiveState = !IsSimSlotsMapping();
     isSimSlotsMapping_[slotId] = false;
     TELEPHONY_LOGI("slotId %{public}d: isNeedUpdateSimLabel is %{public}d, isUpdateActiveState %{public}d",
