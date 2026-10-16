@@ -13,7 +13,7 @@
  * limitations under the License.
  */
 
-#include "core_manager_inner.h"
+#include "core_manager_inner.h" 
 
 #include "network_search_types.h"
 #include "parameter.h"
