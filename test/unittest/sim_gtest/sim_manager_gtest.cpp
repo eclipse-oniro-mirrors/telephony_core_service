@@ -1039,7 +1039,7 @@ HWTEST_F(SimManagerTest, UpdateDBActiveByIccId, Function | MediumTest | Level1)
 {
     // multiSimController_ is nullptr → should return TELEPHONY_ERR_LOCAL_PTR_NULL
     simManager_->multiSimController_ = nullptr;
-    std::string iccId = "123456789"
+    std::string iccId = "123456789";
     int32_t ret = simManager_->UpdateDBActiveByIccId(iccId, 1);
 
     auto mockController = std::make_shared<MultiSimControllerMock>();
