@@ -53,7 +53,7 @@ struct SenseManagerState {
 
 SenseManagerState &GetSenseManagerState();
 
-int32_t RegisterHiddenCameraDetection(napi_env env, napi_value &thisVar, napi_value *parameters);
+int32_t RegisterHiddenCameraDetection(napi_env env, napi_value &thisVar, napi_value parFrist);
 int32_t UnregisterHiddenCameraDetection(napi_env env);
 
 int32_t StartHiddenCameraDetectionAsync(const HiddenCameraDetectionConfig &config);

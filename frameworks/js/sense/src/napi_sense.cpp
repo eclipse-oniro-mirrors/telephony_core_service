@@ -30,20 +30,45 @@ SenseManagerState &GetSenseManagerState()
     return state;
 }
 
+static napi_value CreateResolvedPromise(napi_env env, SenseHiddenCameraDetectionRsltCode resultCode)
+{
+    napi_deferred deferred = nullptr;
+    napi_value promise = nullptr;
+    napi_value resultValue = NapiUtil::ToInt32Value(env, static_cast<int32_t>(resultCode));
+    napi_status status = napi_create_promise(env, &deferred, &promise);
+    if (status != napi_ok) {
+        TELEPHONY_LOGE("napi_create_promise failed");
+        return nullptr;
+    }
+    
+    napi_resolve_deferred(env, deferred, resultValue);
+    return promise;
+}
+
+static void CreateSenseAsyncWork(napi_env env, const std::unique_ptr<SenseAsyncContext> &asyncContext,
+    const char *resourceName, napi_async_execute_callback execute, napi_async_complete_callback complete)
+{
+    napi_value resource = nullptr;
+    napi_create_string_utf8(env, resourceName, NAPI_AUTO_LENGTH, &resource);
+    napi_create_async_work(env, nullptr, resource, execute, complete,
+        static_cast<void *>(asyncContext.get()), &asyncContext->context.work);
+}
+
 static int32_t ReportInfo(const HiddenCameraDetectionRptInfo &info, napi_env envExecute)
 {
     auto &state = GetSenseManagerState();
-    if (envExecute != state.env) {
-        TELEPHONY_LOGE("envExecute does not match env, outdated report");
-        return TELEPHONY_ERROR;
+    napi_ref thisVar = nullptr;
+    napi_ref callbackRef = nullptr;
+    {
+        std::lock_guard<ffrt::mutex> lock(state.mutex);
+        if (envExecute != state.env || state.thisVar == nullptr || state.callbackRef == nullptr) {
+            TELEPHONY_LOGE("envExecute does not match env or callback info is not set, outdated report");
+            return TELEPHONY_ERROR;
+        }
+        thisVar = state.thisVar;
+        callbackRef = state.callbackRef;
     }
-    if (state.env == nullptr || state.thisVar == nullptr || state.callbackRef == nullptr) {
-        TELEPHONY_LOGE("callback info is not set");
-        return TELEPHONY_ERROR;
-    }
-    napi_env env = state.env;
-    napi_ref thisVar = state.thisVar;
-    napi_ref callbackRef = state.callbackRef;
+    napi_env env = envExecute;
     napi_handle_scope scope = nullptr;
     napi_open_handle_scope(env, &scope);
     if (scope == nullptr) {
@@ -111,7 +136,7 @@ int32_t StartHiddenCameraDetectionAsync(const HiddenCameraDetectionConfig &confi
     {
         std::lock_guard<ffrt::mutex> lock(state.mutex);
         if (state.callback == nullptr) {
-            TELEPHONY_LOGE("callback_ is nullptr, detection not registered");
+            TELEPHONY_LOGE("callback is nullptr, detection not registered");
             return static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_INTERNAL_SYSTEM_ERROR);
         }
         callback = state.callback;
@@ -121,12 +146,11 @@ int32_t StartHiddenCameraDetectionAsync(const HiddenCameraDetectionConfig &confi
         callback, config);
     if (ret != static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::SUCCESS)) {
         TELEPHONY_LOGE("StartHiddenCameraDetection failed, ret %{public}d", ret);
-        return ret;
     }
     return ret;
 }
 
-int32_t RegisterHiddenCameraDetection(napi_env env, napi_value &thisVar, napi_value *parameters)
+int32_t RegisterHiddenCameraDetection(napi_env env, napi_value &thisVar, napi_value parFrist)
 {
     napi_ref thisVarRef = nullptr;
     napi_ref callbackRef = nullptr;
@@ -135,7 +159,7 @@ int32_t RegisterHiddenCameraDetection(napi_env env, napi_value &thisVar, napi_va
         TELEPHONY_LOGE("create thisVar reference failed");
         return static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_INTERNAL_SYSTEM_ERROR);
     }
-    status = napi_create_reference(env, parameters[SENSE_ARRAY_INDEX_FIRST], DEFAULT_REF_COUNT, &callbackRef);
+    status = napi_create_reference(env, parFrist, DEFAULT_REF_COUNT, &callbackRef);
     if (status != napi_ok) {
         TELEPHONY_LOGE("create callback reference failed");
         napi_delete_reference(env, thisVarRef);
@@ -150,7 +174,7 @@ int32_t RegisterHiddenCameraDetection(napi_env env, napi_value &thisVar, napi_va
         napi_delete_reference(env, callbackRef);
         return static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_HIDDEN_CAMERA_DETECTION_USE);
     }
-    
+
     state.callback = sptr<HiddenCameraDetectionCallback>::MakeSptr();
     if (state.callback == nullptr) {
         TELEPHONY_LOGE("Create HiddenCameraDetectionCallback failed");
@@ -158,7 +182,7 @@ int32_t RegisterHiddenCameraDetection(napi_env env, napi_value &thisVar, napi_va
         napi_delete_reference(env, callbackRef);
         return static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_INTERNAL_SYSTEM_ERROR);
     }
-   
+
     state.env = env;
     state.thisVar = thisVarRef;
     state.callbackRef = callbackRef;
@@ -270,10 +294,14 @@ static napi_value CreateHiddenCameraDetectionTimeoutPeriod(napi_env env, napi_va
 
 static void ConvertErrorCode(int32_t errorCode, SenseHiddenCameraDetectionRsltCode &rsltCode)
 {
-    auto minCode = static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_NOT_SUPPORT_HIDDEN_CAMERA_DETECTION);
+    auto minCode = static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_CREATE_ASYNC_WORK_ERROR);
     auto maxCode = static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_INTERNAL_SYSTEM_ERROR);
     if (errorCode == TELEPHONY_SUCCESS || (errorCode >= minCode && errorCode <= maxCode)) {
         rsltCode = static_cast<SenseHiddenCameraDetectionRsltCode>(errorCode);
+    } else if (errorCode == TELEPHONY_ERR_PERMISSION_ERR) {
+        rsltCode = SenseHiddenCameraDetectionRsltCode::ERR_PERMISSION_DENY;
+    } else if (errorCode == static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_CAPABILITY_NOT_SUPPORTED)) {
+        rsltCode = SenseHiddenCameraDetectionRsltCode::ERR_CAPABILITY_NOT_SUPPORTED;
     } else {
         rsltCode = SenseHiddenCameraDetectionRsltCode::ERR_INTERNAL_SYSTEM_ERROR;
     }
@@ -284,8 +312,12 @@ static napi_value CreateSenseHiddenCameraDetectionRsltCode(napi_env env, napi_va
     napi_property_descriptor desc[] = {
         DECLARE_NAPI_STATIC_PROPERTY("SUCCESS", NapiUtil::ToInt32Value(env,
             static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::SUCCESS))),
-        DECLARE_NAPI_STATIC_PROPERTY("ERR_NOT_SUPPORT_HIDDEN_CAMERA_DETECTION", NapiUtil::ToInt32Value(env,
-            static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_NOT_SUPPORT_HIDDEN_CAMERA_DETECTION))),
+        DECLARE_NAPI_STATIC_PROPERTY("ERR_PERMISSION_DENY", NapiUtil::ToInt32Value(env,
+            static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_PERMISSION_DENY))),
+        DECLARE_NAPI_STATIC_PROPERTY("ERR_CAPABILITY_NOT_SUPPORTED", NapiUtil::ToInt32Value(env,
+            static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_CAPABILITY_NOT_SUPPORTED))),
+        DECLARE_NAPI_STATIC_PROPERTY("ERR_CREATE_ASYNC_WORK_ERROR", NapiUtil::ToInt32Value(env,
+            static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_CREATE_ASYNC_WORK_ERROR))),
         DECLARE_NAPI_STATIC_PROPERTY("ERR_HIDDEN_CAMERA_DETECTION_USE", NapiUtil::ToInt32Value(env,
             static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_HIDDEN_CAMERA_DETECTION_USE))),
         DECLARE_NAPI_STATIC_PROPERTY("ERR_NO_MODEM_CAN_USE", NapiUtil::ToInt32Value(env,
@@ -333,7 +365,6 @@ void StartHiddenCameraDetectionCallback(napi_env env, napi_status status, void *
         UnregisterHiddenCameraDetection(env);
     }
     if (context->context.deferred != nullptr) {
-        context->context.resolved = true;
         SenseHiddenCameraDetectionRsltCode rsltCode;
         ConvertErrorCode(context->result, rsltCode);
         napi_value resultValue = NapiUtil::ToInt32Value(env, static_cast<int32_t>(rsltCode));
@@ -342,53 +373,64 @@ void StartHiddenCameraDetectionCallback(napi_env env, napi_status status, void *
     napi_delete_async_work(env, context->context.work);
 }
 
-static napi_value StartHiddenCameraDetection(napi_env env, napi_callback_info info)
+static bool ParseStartHiddenCameraDetectionParams(napi_env env, napi_callback_info info,
+    napi_value *parameters, napi_value &thisVar, int32_t &period)
 {
     size_t parameterCount = SENSE_PARAM_COUNT_TWO;
-    napi_value parameters[SENSE_PARAM_COUNT_TWO] = { 0 };
-    napi_value thisVar = nullptr;
     napi_get_cb_info(env, info, &parameterCount, parameters, &thisVar, nullptr);
     if (parameterCount != SENSE_PARAM_COUNT_TWO ||
         !NapiUtil::MatchParameters(env, parameters, { napi_function, napi_object })) {
         TELEPHONY_LOGE("StartHiddenCameraDetection parameter type mismatch");
-        NapiUtil::ThrowParameterError(env);
-        return nullptr;
+        return false;
     }
 
     napi_value periodValue = NapiUtil::GetNamedProperty(env, parameters[SENSE_ARRAY_INDEX_SECOND], "period");
-    int32_t period = 0;
-    napi_get_value_int32(env, periodValue, &period);
+    napi_status status = napi_get_value_int32(env, periodValue, &period);
+    if (status != napi_ok ||
+        period < static_cast<int32_t>(HiddenCameraDetectionTimeoutPeriod::PERIOD_16S) ||
+        period > static_cast<int32_t>(HiddenCameraDetectionTimeoutPeriod::PERIOD_128S)) {
+        TELEPHONY_LOGE("StartHiddenCameraDetection invalid period, status: %{public}d, period: %{public}d",
+            status, period);
+        return false;
+    }
+    return true;
+}
 
-    int32_t ret = RegisterHiddenCameraDetection(env, thisVar, parameters);
+static napi_value StartHiddenCameraDetection(napi_env env, napi_callback_info info)
+{
+    napi_value parameters[SENSE_PARAM_COUNT_TWO] = { 0 };
+    napi_value thisVar = nullptr;
+    int32_t period = 0;
+
+    if (!ParseStartHiddenCameraDetectionParams(env, info, parameters, thisVar, period)) {
+        return CreateResolvedPromise(env, SenseHiddenCameraDetectionRsltCode::ERR_PARAMETER_INCORRECT);
+    }
+
+    int32_t ret = RegisterHiddenCameraDetection(env, thisVar, parameters[SENSE_ARRAY_INDEX_FIRST]);
     if (ret != static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::SUCCESS)) {
         TELEPHONY_LOGE("RegisterHiddenCameraDetection failed, ret %{public}d", ret);
-        napi_deferred deferred = nullptr;
-        napi_value promise = nullptr;
-        napi_create_promise(env, &deferred, &promise);
-        napi_value resultValue = NapiUtil::ToInt32Value(env, ret);
-        napi_resolve_deferred(env, deferred, resultValue);
-        return promise;
+        return CreateResolvedPromise(env, static_cast<SenseHiddenCameraDetectionRsltCode>(ret));
     }
 
     auto asyncContext = std::make_unique<SenseAsyncContext>();
     asyncContext->config.period = static_cast<HiddenCameraDetectionTimeoutPeriod>(period);
 
-    napi_value result = nullptr;
-    napi_create_promise(env, &asyncContext->context.deferred, &result);
+    napi_value promise = nullptr;
+    napi_create_promise(env, &asyncContext->context.deferred, &promise);
 
-    napi_value resourceName = nullptr;
-    napi_create_string_utf8(env, "StartHiddenCameraDetection", NAPI_AUTO_LENGTH, &resourceName);
-    SenseAsyncContext *pContext = asyncContext.release();
-    napi_create_async_work(env, nullptr, resourceName,
-        NativeStartHiddenCameraDetection, StartHiddenCameraDetectionCallback,
-        static_cast<void *>(pContext), &pContext->context.work);
-    if (napi_queue_async_work_with_qos(env, pContext->context.work, napi_qos_default) != napi_ok) {
+    CreateSenseAsyncWork(env, asyncContext, "StartHiddenCameraDetection",
+        NativeStartHiddenCameraDetection, StartHiddenCameraDetectionCallback);
+    if (napi_queue_async_work_with_qos(env, asyncContext->context.work, napi_qos_default) != napi_ok) {
         TELEPHONY_LOGE("napi_queue_async_work_with_qos failed");
+        napi_value resultValue = NapiUtil::ToInt32Value(env,
+            static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_CREATE_ASYNC_WORK_ERROR));
+        napi_resolve_deferred(env, asyncContext->context.deferred, resultValue);
         UnregisterHiddenCameraDetection(env);
-        delete pContext;
-        result = nullptr;
+        napi_delete_async_work(env, asyncContext->context.work);
+    } else {
+        asyncContext.release();
     }
-    return result;
+    return promise;
 }
 
 void NativeStopHiddenCameraDetection(napi_env env, void *data)
@@ -427,33 +469,28 @@ static napi_value StopHiddenCameraDetection(napi_env env, napi_callback_info inf
         std::lock_guard<ffrt::mutex> lock(state.mutex);
         if (state.env != nullptr && state.env != env) {
             TELEPHONY_LOGE("sense APIs must be called on the registering thread");
-            napi_deferred deferred = nullptr;
-            napi_value promise = nullptr;
-            napi_create_promise(env, &deferred, &promise);
-            napi_value resultValue = NapiUtil::ToInt32Value(env,
-                static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_API_CALLED_IN_DIFFERENT_THREAD));
-            napi_resolve_deferred(env, deferred, resultValue);
-            return promise;
+            return CreateResolvedPromise(env,
+                SenseHiddenCameraDetectionRsltCode::ERR_API_CALLED_IN_DIFFERENT_THREAD);
         }
     }
 
     auto asyncContext = std::make_unique<SenseAsyncContext>();
 
-    napi_value result = nullptr;
-    napi_create_promise(env, &asyncContext->context.deferred, &result);
+    napi_value promise = nullptr;
+    napi_create_promise(env, &asyncContext->context.deferred, &promise);
 
-    napi_value resourceName = nullptr;
-    napi_create_string_utf8(env, "StopHiddenCameraDetection", NAPI_AUTO_LENGTH, &resourceName);
-    SenseAsyncContext *pContext = asyncContext.release();
-    napi_create_async_work(env, nullptr, resourceName,
-        NativeStopHiddenCameraDetection, StopHiddenCameraDetectionCallback,
-        static_cast<void *>(pContext), &pContext->context.work);
-    if (napi_queue_async_work_with_qos(env, pContext->context.work, napi_qos_default) != napi_ok) {
+    CreateSenseAsyncWork(env, asyncContext, "StopHiddenCameraDetection",
+        NativeStopHiddenCameraDetection, StopHiddenCameraDetectionCallback);
+    if (napi_queue_async_work_with_qos(env, asyncContext->context.work, napi_qos_default) != napi_ok) {
         TELEPHONY_LOGE("napi_queue_async_work_with_qos failed");
-        delete pContext;
-        result = nullptr;
+        napi_value resultValue = NapiUtil::ToInt32Value(env,
+            static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_CREATE_ASYNC_WORK_ERROR));
+        napi_resolve_deferred(env, asyncContext->context.deferred, resultValue);
+        napi_delete_async_work(env, asyncContext->context.work);
+    } else {
+        asyncContext.release();
     }
-    return result;
+    return promise;
 }
 
 void NativeKeepHiddenCameraDetection(napi_env env, void *data)
@@ -489,33 +526,28 @@ static napi_value KeepHiddenCameraDetection(napi_env env, napi_callback_info inf
         std::lock_guard<ffrt::mutex> lock(state.mutex);
         if (state.env != nullptr && state.env != env) {
             TELEPHONY_LOGE("sense APIs must be called on the registering thread");
-            napi_deferred deferred = nullptr;
-            napi_value promise = nullptr;
-            napi_create_promise(env, &deferred, &promise);
-            napi_value resultValue = NapiUtil::ToInt32Value(env,
-                static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_API_CALLED_IN_DIFFERENT_THREAD));
-            napi_resolve_deferred(env, deferred, resultValue);
-            return promise;
+            return CreateResolvedPromise(env,
+                SenseHiddenCameraDetectionRsltCode::ERR_API_CALLED_IN_DIFFERENT_THREAD);
         }
     }
 
     auto asyncContext = std::make_unique<SenseAsyncContext>();
 
-    napi_value result = nullptr;
-    napi_create_promise(env, &asyncContext->context.deferred, &result);
+    napi_value promise = nullptr;
+    napi_create_promise(env, &asyncContext->context.deferred, &promise);
 
-    napi_value resourceName = nullptr;
-    napi_create_string_utf8(env, "KeepHiddenCameraDetection", NAPI_AUTO_LENGTH, &resourceName);
-    SenseAsyncContext *pContext = asyncContext.release();
-    napi_create_async_work(env, nullptr, resourceName,
-        NativeKeepHiddenCameraDetection, KeepHiddenCameraDetectionCallback,
-        static_cast<void *>(pContext), &pContext->context.work);
-    if (napi_queue_async_work_with_qos(env, pContext->context.work, napi_qos_default) != napi_ok) {
+    CreateSenseAsyncWork(env, asyncContext, "KeepHiddenCameraDetection",
+        NativeKeepHiddenCameraDetection, KeepHiddenCameraDetectionCallback);
+    if (napi_queue_async_work_with_qos(env, asyncContext->context.work, napi_qos_default) != napi_ok) {
         TELEPHONY_LOGE("napi_queue_async_work_with_qos failed");
-        delete pContext;
-        result = nullptr;
+        napi_value resultValue = NapiUtil::ToInt32Value(env,
+            static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::ERR_CREATE_ASYNC_WORK_ERROR));
+        napi_resolve_deferred(env, asyncContext->context.deferred, resultValue);
+        napi_delete_async_work(env, asyncContext->context.work);
+    } else {
+        asyncContext.release();
     }
-    return result;
+    return promise;
 }
 
 static napi_value CreateFunctions(napi_env env, napi_value exports)

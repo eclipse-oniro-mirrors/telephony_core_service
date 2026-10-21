@@ -32,7 +32,9 @@ declare namespace sense {
      * @param { HiddenCameraDetectionConfig } config - Indicates the detection config including timeout period.
      * @returns { Promise<SenseHiddenCameraDetectionRsltCode> } Returns a Promise that resolves with the detection result.
      * returns {@code SUCCESS} if start detecting hidden camera success;
-     * returns {@code ERR_NOT_SUPPORT_HIDDEN_CAMERA_DETECTION} if this device do not support detecting hidden camera;
+     * returns {@code ERR_PERMISSION_DENY} if the caller does not have permission to detect hidden camera;
+     * returns {@code ERR_CAPABILITY_NOT_SUPPORTED} if this device do not support the API;
+     * returns {@code ERR_CREATE_ASYNC_WORK_ERROR} if create async work failed;
      * returns {@code ERR_HIDDEN_CAMERA_DETECTION_USE} if this device can't start detecting hidden camera because it has already started;
      * returns {@code ERR_NO_MODEM_CAN_USE} if this device has activated at least two sims. You must close one sim at least to detect hidden camera;
      * returns {@code ERR_SKY_TONE_USE} if this device has activated sky tone. You must close sky tone to detect hidden camera;
@@ -125,12 +127,26 @@ declare namespace sense {
          */
         SUCCESS = 0,
         /**
-         * Indicates this device do not support detecting hidden camera.
+         * Indicates the caller does not have permission to detect hidden camera.
          *
          * @syscap SystemCapability.Telephony.CoreService.Sense
          * @since 7
          */
-        ERR_NOT_SUPPORT_HIDDEN_CAMERA_DETECTION = 85065728,
+        ERR_PERMISSION_DENY = 201,
+        /**
+         * Indicates this device do not support the API.
+         *
+         * @syscap SystemCapability.Telephony.CoreService.Sense
+         * @since 7
+         */
+        ERR_CAPABILITY_NOT_SUPPORTED = 801,
+        /**
+         * Indicates create async work failed.
+         *
+         * @syscap SystemCapability.Telephony.CoreService.Sense
+         * @since 7
+         */
+        ERR_CREATE_ASYNC_WORK_ERROR = 85065728,
         /**
          * Indicates this device can't start detecting hidden camera because it has already started
          *
@@ -182,7 +198,7 @@ declare namespace sense {
          */
         ERR_NO_HIDDEN_CAMERA_DETECTION = 85065735,
         /**
-         * Detection not started, can not stop or keep
+         * Api is called in different thread
          *
          * @syscap SystemCapability.Telephony.CoreService.Sense
          * @since 7
@@ -200,9 +216,13 @@ declare namespace sense {
     /**
      * Stop Hidden Camera Detection.
      *
-     * returns {@code 0} if stop detecting hidden camera success;
+     * returns {@code SUCCESS} if stop detecting hidden camera success;
+     * returns {@code ERR_PERMISSION_DENY} if the caller does not have permission to stop detecting hidden camera;
+     * returns {@code ERR_CAPABILITY_NOT_SUPPORTED} if this device do not support the API;
+     * returns {@code ERR_CREATE_ASYNC_WORK_ERROR} if create async work failed;
      * returns {@code ERR_NO_HIDDEN_CAMERA_DETECTION} if this device can't stop detecting hidden camera because it do not start;
      * returns {@code ERR_API_CALLED_IN_DIFFERENT_THREAD} if api is called in different thread;
+     * returns {@code ERR_INTERNAL_SYSTEM_ERROR} if internal system error occurred;
      * @syscap SystemCapability.Telephony.CoreService.Sense
      * @since 7
      */
@@ -211,9 +231,13 @@ declare namespace sense {
     /**
      * Keep Hidden Camera Detection.
      *
-     * returns {@code 0} if keep detecting hidden camera success;
+     * returns {@code SUCCESS} if keep detecting hidden camera success;
+     * returns {@code ERR_PERMISSION_DENY} if the caller does not have permission to keep detecting hidden camera;
+     * returns {@code ERR_CAPABILITY_NOT_SUPPORTED} if this device do not support the API;
+     * returns {@code ERR_CREATE_ASYNC_WORK_ERROR} if create async work failed;
      * returns {@code ERR_NO_HIDDEN_CAMERA_DETECTION} if this device can't keep detecting hidden camera because it do not start;
      * returns {@code ERR_API_CALLED_IN_DIFFERENT_THREAD} if api is called in different thread;
+     * returns {@code ERR_INTERNAL_SYSTEM_ERROR} if internal system error occurred;
      * @syscap SystemCapability.Telephony.CoreService.Sense
      * @since 7
      */

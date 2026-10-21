@@ -28,7 +28,9 @@ enum class HiddenCameraDetectionTimeoutPeriod : uint32_t {
  */
 enum class SenseHiddenCameraDetectionRsltCode : uint32_t {
     SUCCESS = 0,
-    ERR_NOT_SUPPORT_HIDDEN_CAMERA_DETECTION = static_cast<uint32_t>(ErrCodeOffset(SUBSYS_TELEPONY, 0x12)),
+    ERR_PERMISSION_DENY = 201,
+    ERR_CAPABILITY_NOT_SUPPORTED = 801,
+    ERR_CREATE_ASYNC_WORK_ERROR = static_cast<uint32_t>(ErrCodeOffset(SUBSYS_TELEPONY, 0x12)),
     ERR_HIDDEN_CAMERA_DETECTION_USE,
     ERR_NO_MODEM_CAN_USE,
     ERR_SKY_TONE_USE,
