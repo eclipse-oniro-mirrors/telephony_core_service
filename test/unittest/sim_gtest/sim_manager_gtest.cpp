@@ -1037,15 +1037,27 @@ HWTEST_F(SimManagerTest, SetSpecifiedIccidBySlotId_001, Function | MediumTest | 
 
 HWTEST_F(SimManagerTest, UpdateDBActiveByIccId, Function | MediumTest | Level1)
 {
-    // multiSimController_ is nullptr → should return TELEPHONY_ERR_LOCAL_PTR_NULL
+    std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
+    auto simStateManagerPtr = std::make_shared<SimStateManager>(telRilManager);
+    auto telRilManagerWeak = std::weak_ptr<TelRilManager>(telRilManager);
+    auto simFileManagerPtr = std::make_shared<Telephony::SimFileManager>(
+        telRilManagerWeak, std::weak_ptr<Telephony::SimStateManager>(simStateManagerPtr));
+    std::vector<std::shared_ptr<Telephony::SimStateManager>> simStateManager = { simStateManagerPtr,
+        simStateManagerPtr };
+    std::vector<std::shared_ptr<Telephony::SimFileManager>> simFileManager = { simFileManagerPtr, simFileManagerPtr };
+    std::shared_ptr<Telephony::MultiSimController> multiSimController =
+        std::make_shared<MultiSimController>(telRilManager, simStateManager, simFileManager);
+    multiSimController->simDbHelper_ = std::make_unique<MockSimRdbHelper>();
+    auto simDb = static_cast<MockSimRdbHelper*>(multiSimController->simDbHelper_.get());
+    DataShare::DataShareValuesBucket captured;
+    EXPECT_CALL(*simDb, UpdateDataByIccId(_, _))
+        .WillOnce(DoAll(SaveArg<1>(&captured), Return(TELEPHONY_ERR_SUCCESS)));
+ 
     simManager_->multiSimController_ = nullptr;
     std::string iccId = "123456789";
     int32_t ret = simManager_->UpdateDBActiveByIccId(iccId, 1);
-
-    auto mockController = std::make_shared<MultiSimControllerMock>();
-    EXPECT_CALL(*mockController, UpdateDBActiveByIccId(iccId, 1))
-        .WillOnce(Return(TELEPHONY_ERR_SUCCESS));
-    simManager_->multiSimController_ = mockController;
+ 
+    simManager_->multiSimController_ = multiSimController;
     simManager_->UpdateDBActiveByIccId(iccId, 1);
     simManager_->multiSimController_ = nullptr;
     EXPECT_EQ(ret, TELEPHONY_ERR_LOCAL_PTR_NULL);
