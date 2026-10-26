@@ -17,6 +17,7 @@
 #include "telephony_ext_wrapper.h"
 #include "core_manager_inner.h"
 #include "sim_data.h"
+#include <cstdlib>
 #include <openssl/sha.h>
 
 #ifdef  CORE_SERVICE_SUPPORT_ESIM
@@ -36,6 +37,10 @@ static const std::string DEFAULT_CELLULAR_DATA_SIMID_CHANGED = "defaultCellularD
 static const std::string PARAM_SET_PRIMARY_STATUS = "setDone";
 static const std::string PARAM_SET_PRIMARY_IS_USER_SET = "isUserSet";
 static const std::string SIM_LABEL_STATE_PROP = "persist.ril.sim_switch";
+static const std::string TSTS_MODE_PROP = "persist.telephony.tsts_mode";
+static const std::string SUPPORT_ESIM_MEP = "const.ril.sim.esim_support_mep";
+static const std::string ESIM_SUPPORT_PARAM = "const.ril.esim_type";
+static constexpr const char *TYPE_ESIM_3_SEL_2 = "3";
 static const int32_t CARD_ATR_LEN = 65;
 static constexpr int32_t SLOT_ID_0 = 0;
 static constexpr int32_t SLOT_ID_1 = 1;
@@ -46,6 +51,10 @@ constexpr int32_t PSIM2 = 2;
 constexpr int32_t PSIM1_PSIM2 = 0;
 constexpr int32_t PSIM1_ESIM = 1;
 constexpr int32_t PSIM2_ESIM = 2;
+static constexpr int32_t TSTS_MODE_OFF = 0;
+static constexpr int32_t TSTS_MODE_ON = 1;
+static constexpr int32_t MEP_ESIM_SCI_ID = 1;
+static constexpr int32_t TSTS_ESIM_SCI_ID = 2;
 
 #ifdef CORE_SERVICE_SUPPORT_ESIM
 static const std::string GSM_SIM_ATR = "gsm.sim.hw_atr";
@@ -56,7 +65,7 @@ static const std::string GSM_SIM_ATR3 = "gsm.sim.hw_atr3";
 
 MultiSimHelper::MultiSimHelper()
 {
-tstsMode_ = OHOS::system::GetIntParameter("persist.telephony.tsts_mode", 0);
+    tstsMode_ = OHOS::system::GetIntParameter(TSTS_MODE_PROP, TSTS_MODE_OFF);
 }
 
 MultiSimHelper::~MultiSimHelper()
@@ -229,7 +238,58 @@ int32_t MultiSimHelper::GetPsimLabelIndex(int slotId)
     }
 }
 
-bool MultiSimHelper::IsEsim(int32_t slotId)
+bool MultiSimHelper::IsMff2Esim(int32_t slotId, bool isTstsMode, bool isSupportEsimMep)
+{
+    if (slotId < SLOT_ID_0 || slotId > SLOT_ID_3) {
+        TELEPHONY_LOGE("esim slotId invalid, slotId: %{public}d", slotId);
+        return false;
+    }
+    std::vector<int> sci;
+    GetEsimSci(sci);
+    if (sci.size() != static_cast<size_t>(ESIM_LSI_CFG_GROUP_COUNT)) {
+        TELEPHONY_LOGE("get esim sci failed, slotId: %{public}d", slotId);
+        return false;
+    }
+    const int32_t slotSci = sci[slotId];
+    TELEPHONY_LOGI("slot%{public}d esim sci: %{public}d", slotId, slotSci);
+ 
+    if (isTstsMode) {
+        TELEPHONY_LOGI("Tsts product, slot%{public}d sci: %{public}d", slotId, slotSci);
+        return slotSci == TSTS_ESIM_SCI_ID;
+    }
+ 
+    const int32_t simLabelState = OHOS::system::GetIntParameter(SIM_LABEL_STATE_PROP, PSIM1_PSIM2);
+    if (isSupportEsimMep && (simLabelState != PSIM1_PSIM2) && (slotSci == MEP_ESIM_SCI_ID)) {
+        TELEPHONY_LOGI("mep product, slot%{public}d sci: %{public}d", slotId, slotSci);
+        return true;
+    }
+    return false;
+}
+ 
+bool MultiSimHelper::IsEsimSlot(int32_t slotId, bool isEuiccAtr)
+{
+    const bool isTstsMode = OHOS::system::GetIntParameter(TSTS_MODE_PROP, TSTS_MODE_OFF) == TSTS_MODE_ON;
+    const bool isSupportEsimMep = OHOS::system::GetBoolParameter(SUPPORT_ESIM_MEP, false);
+    if (isEuiccAtr) {
+        // MEP和TSTS模式设备
+        if (isTstsMode || isSupportEsimMep) {
+            return IsMff2Esim(slotId, isTstsMode, isSupportEsimMep);
+        }
+ 
+        // SEP模式设备
+        const std::string esimType = OHOS::system::GetParameter(ESIM_SUPPORT_PARAM, "");
+        const int32_t simLabelState = OHOS::system::GetIntParameter(SIM_LABEL_STATE_PROP, PSIM1_PSIM2);
+        if (esimType == TYPE_ESIM_3_SEL_2) {
+            if (simLabelState == PSIM1_PSIM2) {
+                return false;
+            }
+            return slotId == SLOT_ID_1;
+        }
+    }
+    return isEuiccAtr;
+}
+ 
+bool MultiSimHelper::IsEsim(int32_t slotId) const
 {
 #ifdef CORE_SERVICE_SUPPORT_ESIM
     if (!CoreManagerInner::GetInstance().IsSupported(slotId)) {
@@ -246,17 +306,24 @@ bool MultiSimHelper::IsEsim(int32_t slotId)
     }
 
     char buf[CARD_ATR_LEN + 1] = {0};
-    GetParameter(propAtr.c_str(), "", buf, CARD_ATR_LEN);
-    std::string cardAtr(buf);
+    if (GetParameter(propAtr.c_str(), "", buf, PROP_LEN) < 0) {
+        TELEPHONY_LOGE("get card atr failed, slotId: %{public}d", slotId);
+        return false;
+    }
+    const std::string cardAtr(buf);
     if (cardAtr.empty()) {
         TELEPHONY_LOGE("card atr is empty.");
         return false;
     }
 
     ResetResponse resetResponse;
-    resetResponse.AnalysisAtrData(cardAtr);
-    TELEPHONY_LOGI("slot%{public}d isEsim: %{public}s", slotId, resetResponse.IsEuiccAvailable() ? "true" : "false");
-    return resetResponse.IsEuiccAvailable();
+    if (!resetResponse.AnalysisAtrData(cardAtr)) {
+        TELEPHONY_LOGE("analysis card atr failed, slotId: %{public}d", slotId);
+        return false;
+    }
+    const bool isEsim = IsEsimSlot(slotId, resetResponse.IsEuiccAvailable());
+    TELEPHONY_LOGI("slot%{public}d isEsim: %{public}s", slotId, isEsim ? "true" : "false");
+    return isEsim;
 #else
     return false;
 #endif

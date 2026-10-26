@@ -40,6 +40,7 @@ public:
     bool IsEsim(int32_t slotId);
 
 private:
+    static bool IsMff2Esim(int32_t slotId, bool isTstsMode, bool isSupportEsimMep);
     bool PublishSimFileEvent(const AAFwk::Want &want, int eventCode, const std::string &eventData);
 
     int32_t tstsMode_ = 0;
