@@ -37,11 +37,21 @@ static const std::string DEFAULT_CELLULAR_DATA_SIMID_CHANGED = "defaultCellularD
 static const std::string PARAM_SET_PRIMARY_STATUS = "setDone";
 static const std::string PARAM_SET_PRIMARY_IS_USER_SET = "isUserSet";
 static const std::string SIM_LABEL_STATE_PROP = "persist.ril.sim_switch";
+static const std::string ESIM_LSI_CFG_PROP = "persist.ril.esim_lsi_cfg";
 static const std::string TSTS_MODE_PROP = "persist.telephony.tsts_mode";
 static const std::string SUPPORT_ESIM_MEP = "const.ril.sim.esim_support_mep";
 static const std::string ESIM_SUPPORT_PARAM = "const.ril.esim_type";
 static constexpr const char *TYPE_ESIM_3_SEL_2 = "3";
-static const int32_t CARD_ATR_LEN = 65;
+static constexpr int32_t ESIM_LSI_CFG_ESIM_SLOTID_COUNT = 1;
+static constexpr int32_t ESIM_LSI_CFG_GROUP_COUNT = 4;
+static constexpr int32_t ESIM_LSI_CFG_ITEM_PER_GROUP = 2;
+static constexpr int32_t ESIM_LSI_CFG_ITEM_COUNT =
+    ESIM_LSI_CFG_ESIM_SLOTID_COUNT + ESIM_LSI_CFG_GROUP_COUNT * ESIM_LSI_CFG_ITEM_PER_GROUP;
+static constexpr int32_t ESIM_LSI_CFG_SCI_MIN = 0;
+static constexpr int32_t ESIM_LSI_CFG_SCI_MAX = 2;
+static constexpr int32_t ESIM_LSI_CFG_SCI_INVALID = 255;
+static constexpr int32_t SIM_SCI_0 = 0;
+static const int32_t PROP_LEN = 65;
 static constexpr int32_t SLOT_ID_0 = 0;
 static constexpr int32_t SLOT_ID_1 = 1;
 static constexpr int32_t SLOT_ID_2 = 2;
@@ -305,7 +315,7 @@ bool MultiSimHelper::IsEsim(int32_t slotId) const
         return false;
     }
 
-    char buf[CARD_ATR_LEN + 1] = {0};
+    char buf[PROP_LEN + 1] = {0};
     if (GetParameter(propAtr.c_str(), "", buf, PROP_LEN) < 0) {
         TELEPHONY_LOGE("get card atr failed, slotId: %{public}d", slotId);
         return false;
