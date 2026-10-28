@@ -328,5 +328,64 @@ bool MultiSimHelper::IsEsim(int32_t slotId) const
     return false;
 #endif
 }
+
+bool MultiSimHelper::IsValidSci(int32_t sci)
+{
+    return (sci >= ESIM_LSI_CFG_SCI_MIN && sci <= ESIM_LSI_CFG_SCI_MAX) || sci == ESIM_LSI_CFG_SCI_INVALID;
+}
+
+bool MultiSimHelper::ParseSci(const std::string &sciStr, int32_t &sci)
+{
+    errno = 0;
+    const char *str = sciStr.c_str();
+    char *endPtr = nullptr;
+    long value = std::strtol(str, &endPtr, DEC_TYPE);
+    if (errno == ERANGE || endPtr == nullptr || endPtr == str || *endPtr != '\0') {
+        return false;
+    }
+    if (value < static_cast<long>(ESIM_LSI_CFG_SCI_MIN) || value > static_cast<long>(ESIM_LSI_CFG_SCI_INVALID)) {
+        return false;
+    }
+    sci = static_cast<int32_t>(value);
+    return IsValidSci(sci);
+}
+
+void MultiSimHelper::GetEsimSci(std::vector<int> &sci)
+{
+    sci.clear();
+    char buf[PROP_LEN + 1] = {0};
+    GetParameter(ESIM_LSI_CFG_PROP.c_str(), "", buf, PROP_LEN);
+    std::string lsiCfg(buf);
+    if (lsiCfg.empty()) {
+        TELEPHONY_LOGE("esim lsi cfg is empty.");
+        return;
+    }
+ 
+    std::vector<std::string> items;
+    std::string item;
+    std::stringstream ss(lsiCfg);
+    while (std::getline(ss, item, ',')) {
+        items.push_back(item);
+    }
+    // format: 1 skipped item + 4 groups for slotId 0-3, the first number of each group is the sci of the slotId.
+    if (items.size() != static_cast<size_t>(ESIM_LSI_CFG_ITEM_COUNT)) {
+        TELEPHONY_LOGE("esim lsi cfg format invalid, size %{public}zu", items.size());
+        return;
+    }
+ 
+    for (int32_t slotId = SLOT_ID_0; slotId <= SLOT_ID_3; slotId++) {
+        size_t index = static_cast<size_t>(ESIM_LSI_CFG_ESIM_SLOTID_COUNT + slotId * ESIM_LSI_CFG_ITEM_PER_GROUP);
+        int32_t value = 0;
+        if (!ParseSci(items[index], value)) {
+            TELEPHONY_LOGE("esim lsi cfg sci invalid, slotId %{public}d, sciStr %{public}s",
+                slotId, items[index].c_str());
+            sci.clear();
+            return;
+        }
+        sci.push_back(value);
+    }
+    TELEPHONY_LOGI("esim lsi cfg sci size %{public}zu", sci.size());
+}
+
 }
 }
