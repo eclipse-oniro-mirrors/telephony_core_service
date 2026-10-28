@@ -557,6 +557,7 @@ int32_t SimRdbHelper::ForgetAllData()
     DataShare::DataShareValuesBucket value;
     DataShare::DataShareValueObject valueObj(INVALID_VALUE);
     if (OHOS::system::GetIntParameter("persist.telephony.tsts_mode", 0) >= 1) {
+        IsInMaintenanceMode();
         TELEPHONY_LOGI("ForgetAllData tsts is on");
         predicates1.EqualTo(SimData::IS_ESIM, std::to_string(0));
     }
@@ -580,6 +581,11 @@ int32_t SimRdbHelper::ForgetAllData()
     TELEPHONY_LOGI("ForgetAllData result:%{public}d", result);
     dataShareHelper->Release();
     return result;
+}
+
+bool SimRdbHelper::IsInMaintenanceMode()
+{
+
 }
 
 int32_t SimRdbHelper::ForgetAllData(int32_t slotId, bool isNeedUpdateSimLabel, bool isUpdateActiveState)
