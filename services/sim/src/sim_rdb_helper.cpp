@@ -588,7 +588,7 @@ int32_t SimRdbHelper::ForgetAllData()
 bool SimRdbHelper::IsMaintenanceMode()
 {
     std::string isMaintenancemode = OHOS::system::GetParameter("persist.hiviewcare.maintenancemode", "false");
-    auto telProfileUtil = DelayedSingleton::GetInstance();
+    auto telProfileUtil = DelayedSingleton::GetInstance<TelProfileUtil>();
     if (isMaintenancemode == "true") {
         telProfileUtil->SaveString(MAINTENANCE_MODE_KEY, "true");
         return true;
