@@ -25,6 +25,8 @@ namespace OHOS {
 namespace Telephony {
 #undef TELEPHONY_LOG_TAG
 #define TELEPHONY_LOG_TAG "SimRdbHelper"
+const std::string MAINTENANCE_MODE_KEY = "maintenancemode";
+
 SimRdbHelper::SimRdbHelper() {}
 
 SimRdbHelper::~SimRdbHelper() {}
