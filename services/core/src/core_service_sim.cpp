@@ -1565,7 +1565,11 @@ int32_t CoreServiceSim::GetRealSimCount()
 {
     int32_t realSlotCount = SIM_SLOT_COUNT_REAL;
     if (simManager_ != nullptr) {
-        return simManager_->GetRealSimCount();
+        realSlotCount = simManager_->GetRealSimCount();
+    }
+    if (realSlotCount == SLOT_3_INDEX && !MultiSimsCapabilityMgr::IsMultiSimsCapabilitySupported(SLOT_3_INDEX)) {
+        TELEPHONY_LOGI("GetRealSimCount capability not supported for slot 3");
+        realSlotCount = SLOT_3_INDEX - 1;
     }
     return realSlotCount;
 }
