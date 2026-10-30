@@ -103,6 +103,7 @@ public:
     void CheckIfNeedSwitchMainSlotId(bool isUserSet);
     int32_t SetTargetPrimarySlotId(bool isDualCard, int32_t primarySlotId);
     int32_t SwapM0M2SimCards(int32_t slotId);
+    int32_t SwapTwoModemSimCards(int32_t slotId);
     int32_t UpdateDBActiveByIccId(const std::string iccId, int32_t enable);
 
 public:
