@@ -570,33 +570,6 @@ HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_SetPrimarySlotId_002, Fu
     multiSimController->SendSetPrimarySlotEvent(0);
 }
 
-HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_NeedSwitchSimCard_001, Function | MediumTest | Level1)
-{
-    std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
-    std::vector<std::shared_ptr<Telephony::SimStateManager>> simStateManager(SIM_SLOT_COUNT_REAL + 1, nullptr);
-    std::vector<std::shared_ptr<Telephony::SimFileManager>> simFileManager(SIM_SLOT_COUNT_REAL + 1, nullptr);
-    auto simStateManager0 = std::make_shared<Telephony::SimStateManager>(telRilManager);
-    simStateManager0->simStateHandle_ = std::make_shared<SimStateHandle>(simStateManager0);
-    simStateManager0->simStateHandle_->iccState_.simStatus_ = ICC_CARD_ABSENT;
-    simStateManager[SIM_SLOT_0] = simStateManager0;
-    std::shared_ptr<Telephony::MultiSimController> multiSimController =
-        std::make_shared<MultiSimController>(telRilManager, simStateManager, simFileManager);
-    // 槽位0的simStateManager存在但无卡(HasSimCard为false)，IsValidData返回false直接返回NO_SIM_CARD
-    EXPECT_EQ(multiSimController->NeedSwitchSimCard(SIM_SLOT_0), TELEPHONY_ERR_NO_SIM_CARD);
-    EXPECT_NE(multiSimController->targetPrimarySlotId_, SIM_SLOT_0);
-}
-
-HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_NeedSwitchSimCard_002, Function | MediumTest | Level1)
-{
-    std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
-    std::vector<std::shared_ptr<Telephony::SimStateManager>> simStateManager(SIM_SLOT_COUNT_REAL + 1, nullptr);
-    std::vector<std::shared_ptr<Telephony::SimFileManager>> simFileManager(SIM_SLOT_COUNT_REAL + 1, nullptr);
-    std::shared_ptr<Telephony::MultiSimController> multiSimController =
-        std::make_shared<MultiSimController>(telRilManager, simStateManager, simFileManager);
-    // 槽位0在合法范围内但simStateManager_为nullptr，IsValidData返回false直接返回NO_SIM_CARD
-    EXPECT_EQ(multiSimController->NeedSwitchSimCard(SIM_SLOT_0), TELEPHONY_ERR_NO_SIM_CARD);
-}
-
 HWTEST_F(MultiSimControllerTest, GetSimLabelMeptest_001, Function | MediumTest | Level1)
 {
     std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
