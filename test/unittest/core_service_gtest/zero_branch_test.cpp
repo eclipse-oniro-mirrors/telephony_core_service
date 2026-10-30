@@ -2352,6 +2352,8 @@ HWTEST_F(BranchTest, Telephony_MultiSimMonitor_006, Function | MediumTest | Leve
     multiSimMonitor->CheckSimPresentWhenReboot();
     multiSimMonitor->tstsMode_ = 0;
     multiSimMonitor->CheckSimPresentWhenReboot();
+    multiSimMonitor->OnUserSwitched(10736);
+    multiSimMonitor->OnDataShareReady(10736);
     EXPECT_TRUE(multiSimMonitor->hasCheckedSimPresent_[0]);
 }
 
