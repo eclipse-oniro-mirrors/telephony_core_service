@@ -570,6 +570,46 @@ HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_SetPrimarySlotId_002, Fu
     multiSimController->SendSetPrimarySlotEvent(0);
 }
 
+HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_SwapTwoModemSimCards_001, Function | MediumTest | Level1)
+{
+    std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
+    std::vector<std::shared_ptr<Telephony::SimStateManager>> simStateManager = { nullptr, nullptr };
+    std::vector<std::shared_ptr<Telephony::SimFileManager>> simFileManager = { nullptr, nullptr };
+    std::shared_ptr<Telephony::MultiSimController> multiSimController =
+        std::make_shared<MultiSimController>(telRilManager, simStateManager, simFileManager);
+    // mock的TELEPHONY_EXT_WRAPPER.SwapTwoModemSimCards透传入参，返回值与入参一致
+    EXPECT_EQ(multiSimController->SwapTwoModemSimCards(SIM_SLOT_3), SIM_SLOT_3);
+    EXPECT_EQ(multiSimController->SwapTwoModemSimCards(0), 0);
+}
+ 
+HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_NeedSwitchSimCard_001, Function | MediumTest | Level1)
+{
+    std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
+    std::vector<std::shared_ptr<Telephony::SimStateManager>> simStateManager = { nullptr, nullptr };
+    std::vector<std::shared_ptr<Telephony::SimFileManager>> simFileManager = { nullptr, nullptr };
+    std::shared_ptr<Telephony::MultiSimController> multiSimController =
+        std::make_shared<MultiSimController>(telRilManager, simStateManager, simFileManager);
+    // 槽位无卡(IsValidData为false)时直接返回NO_SIM_CARD
+    EXPECT_EQ(multiSimController->NeedSwitchSimCard(SIM_SLOT_3), TELEPHONY_ERR_NO_SIM_CARD);
+    EXPECT_EQ(multiSimController->NeedSwitchSimCard(-1), TELEPHONY_ERR_NO_SIM_CARD);
+}
+ 
+HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_NeedSwitchSimCard_002, Function | MediumTest | Level1)
+{
+    std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
+    std::vector<std::shared_ptr<Telephony::SimStateManager>> simStateManager(SIM_SLOT_COUNT_REAL + 1, nullptr);
+    std::vector<std::shared_ptr<Telephony::SimFileManager>> simFileManager(SIM_SLOT_COUNT_REAL + 1, nullptr);
+    auto simStateManager3 = std::make_shared<Telephony::SimStateManager>(telRilManager);
+    simStateManager3->simStateHandle_ = std::make_shared<SimStateHandle>(simStateManager3);
+    simStateManager3->simStateHandle_->iccState_.simStatus_ = ICC_CONTENT_READY;
+    simStateManager[SIM_SLOT_3] = simStateManager3;
+    std::shared_ptr<Telephony::MultiSimController> multiSimController =
+        std::make_shared<MultiSimController>(telRilManager, simStateManager, simFileManager);
+    // slot3有卡：走SwapTwoModemSimCards(mock透传入参)后SetTargetPrimarySlotId返回成功
+    EXPECT_EQ(multiSimController->NeedSwitchSimCard(SIM_SLOT_3), TELEPHONY_SUCCESS);
+    EXPECT_EQ(multiSimController->targetPrimarySlotId_, SIM_SLOT_3);
+}
+
 HWTEST_F(MultiSimControllerTest, GetSimLabelMeptest_001, Function | MediumTest | Level1)
 {
     std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
