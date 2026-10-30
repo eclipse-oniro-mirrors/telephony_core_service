@@ -287,7 +287,7 @@ void TelephonyExtWrapper::InitTelephonyExtWrapperForSim()
     swapTwoModemSimCards_ =
         reinterpret_cast<SwapTwoModemSimCardsFunc>(dlsym(telephonyExtWrapperHandle_, "SwapTwoModemSimCards"));
     if (swapTwoModemSimCards_ == nullptr) {
-        TELEPHONY_LOGE("[SIM] SwapTwoModemSimCards symbol failed");
+        TELEPHONY_LOGE("[SIM] SwapTwoModemSimCards symbol failed, error: %{public}s", dlerror());
     }
     bool hasFuncNull = (createIccFileExt_ == nullptr || getRoamingBrokerNumeric_ == nullptr || initBip_ == nullptr ||
         getRoamingBrokerImsi_ == nullptr || sendEvent_ == nullptr ||
