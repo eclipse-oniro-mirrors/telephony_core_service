@@ -142,6 +142,7 @@ public:
     typedef bool (*GetResetActiveFlagFunc)(int32_t slotId, bool &isActive);
     typedef void (*SavePreferredNetworkValue)(int32_t slotId, int32_t networkMode);
     typedef int32_t (*SwapM0M2SimCardsFunc)(int32_t slotId);
+    typedef int32_t (*SwapTwoModemSimCardsFunc)(int32_t slotId);
     typedef bool (*GetSimLabelIndexFromLsiCfgFunc)(int32_t slotId, int32_t &simLabelindex);
     typedef void (*NotifyRebootDetectSim)(bool isPSIM1Prensent, bool isPSIM2Prensent);
     typedef int32_t (*StartHiddenCameraDetectionExtFunc)(const sptr<IHiddenCameraDetectionCallback> &callback,
@@ -237,6 +238,7 @@ public:
     bool GetResetActiveFlag(int32_t slotId, bool &isActive);
     void SavePreferredNetworkValueFunc(int32_t slotId, int32_t networkMode);
     int32_t SwapM0M2SimCards(int32_t slotId);
+    int32_t SwapTwoModemSimCards(int32_t slotId);
     bool GetSimLabelIndexFromLsiCfg(int32_t slotId, int32_t &simLabelindex);
 
 private:
@@ -266,6 +268,7 @@ private:
     GetResetActiveFlagFunc getResetActiveFlag_ = nullptr;
     SavePreferredNetworkValue savePreferredNetworkValue_ = nullptr;
     SwapM0M2SimCardsFunc swapM0M2SimCards_ = nullptr;
+    SwapTwoModemSimCardsFunc swapTwoModemSimCards_ = nullptr;
     GetSimLabelIndexFromLsiCfgFunc getSimLabelIndexFromLsiCfg_ = nullptr;
 };
 

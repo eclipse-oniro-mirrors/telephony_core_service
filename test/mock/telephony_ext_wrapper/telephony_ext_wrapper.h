@@ -139,6 +139,8 @@ public:
     typedef int32_t (*GetRealSimCountExtFunc)(int32_t realSlotCount);
     typedef bool (*GetResetActiveFlagFunc)(int32_t slotId, bool &isActive);
     typedef void (*SavePreferredNetworkValue)(int32_t slotId, int32_t networkMode);
+    typedef int32_t (*SwapM0M2SimCardsFunc)(int32_t slotId);
+    typedef int32_t (*SwapTwoModemSimCardsFunc)(int32_t slotId);
     typedef bool (*GetSimLabelIndexFromLsiCfgFunc)(int32_t slotId, int32_t &simLabelindex);
     typedef void (*NotifyRebootDetectSim)(bool isPSIM1Prensent, bool isPSIM2Prensent);
     typedef int32_t (*StartHiddenCameraDetectionExtFunc)(const sptr<IHiddenCameraDetectionCallback> &callback,
@@ -232,6 +234,7 @@ public:
     bool GetResetActiveFlag(int32_t slotId, bool &isActive);
     void SavePreferredNetworkValueFunc(int32_t slotId, int32_t networkMode);
     int32_t SwapM0M2SimCards(int32_t slotId);
+    int32_t SwapTwoModemSimCards(int32_t slotId);
     bool GetSimLabelIndexFromLsiCfg(int32_t slotId, int32_t &simLabelindex);
     void NotifyRebootDetectSimFnc(bool isPSIM1Prensent, bool isPSIM2Prensent);
 private:
@@ -658,6 +661,11 @@ inline void TelephonyExtWrapper::SavePreferredNetworkValueFunc(int32_t slotId, i
 inline int32_t TelephonyExtWrapper::SwapM0M2SimCards(int32_t slotId)
 {
     return 0;
+}
+
+inline int32_t TelephonyExtWrapper::SwapTwoModemSimCards(int32_t slotId)
+{
+    return slotId;
 }
 
 inline bool TelephonyExtWrapper::GetSimLabelIndexFromLsiCfg(int32_t slotId, int32_t &simLabelindex)
