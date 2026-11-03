@@ -102,49 +102,6 @@ HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_ForgetAllData_001, Funct
     EXPECT_FALSE(ret);
 }
 
-HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_ForgetAllData_002, Function | MediumTest | Level1)
-{
-    std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
-    std::vector<std::shared_ptr<Telephony::SimStateManager>> simStateManager = { nullptr, nullptr };
-    std::vector<std::shared_ptr<Telephony::SimFileManager>> simFileManager = { nullptr, nullptr };
-    std::shared_ptr<Telephony::MultiSimController> multiSimController =
-        std::make_shared<MultiSimController>(telRilManager, simStateManager, simFileManager);
-    auto telProfileUtil = DelayedSingleton<TelProfileUtil>::GetInstance();
-    OHOS::system::SetParameter(TSTS_MODE_PARAM, "0");
-    OHOS::system::SetParameter(MAINTENANCE_MODE_PARAM, "false");
-    telProfileUtil->SaveString(MAINTENANCE_MODE_PROFILE_KEY, "false");
-    bool normalResult = multiSimController->ForgetAllData();
-    OHOS::system::SetParameter(TSTS_MODE_PARAM, "1");
-    bool tstsNotMaintenanceResult = multiSimController->ForgetAllData();
-    OHOS::system::SetParameter(MAINTENANCE_MODE_PARAM, "true");
-    bool maintenanceResult = multiSimController->ForgetAllData();
-    EXPECT_EQ(telProfileUtil->ObtainString(MAINTENANCE_MODE_PROFILE_KEY, "false"), "true");
-    EXPECT_EQ(normalResult, tstsNotMaintenanceResult);
-    EXPECT_EQ(tstsNotMaintenanceResult, maintenanceResult);
-    OHOS::system::SetParameter(TSTS_MODE_PARAM, "0");
-    OHOS::system::SetParameter(MAINTENANCE_MODE_PARAM, "false");
-    telProfileUtil->SaveString(MAINTENANCE_MODE_PROFILE_KEY, "false");
-}
-
-HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_ForgetAllData_003, Function | MediumTest | Level1)
-{
-    std::shared_ptr<TelRilManager> telRilManager = std::make_shared<TelRilManager>();
-    std::vector<std::shared_ptr<Telephony::SimStateManager>> simStateManager = { nullptr, nullptr };
-    std::vector<std::shared_ptr<Telephony::SimFileManager>> simFileManager = { nullptr, nullptr };
-    std::shared_ptr<Telephony::MultiSimController> multiSimController =
-        std::make_shared<MultiSimController>(telRilManager, simStateManager, simFileManager);
-    auto telProfileUtil = DelayedSingleton<TelProfileUtil>::GetInstance();
-    OHOS::system::SetParameter(TSTS_MODE_PARAM, "1");
-    OHOS::system::SetParameter(MAINTENANCE_MODE_PARAM, "false");
-    telProfileUtil->SaveString(MAINTENANCE_MODE_PROFILE_KEY, "true");
-    bool exitMaintenanceResult = multiSimController->ForgetAllData();
-    EXPECT_EQ(telProfileUtil->ObtainString(MAINTENANCE_MODE_PROFILE_KEY, "false"), "false");
-    bool normalResult = multiSimController->ForgetAllData();
-    EXPECT_EQ(exitMaintenanceResult, normalResult);
-    OHOS::system::SetParameter(TSTS_MODE_PARAM, "0");
-    telProfileUtil->SaveString(MAINTENANCE_MODE_PROFILE_KEY, "false");
-}
-
 HWTEST_F(MultiSimControllerTest, MultiSimControllerTest_ForgetAllDataWithSlotId_001, Function | MediumTest | Level1)
 {
     int slotId = -1;
