@@ -57,7 +57,7 @@ void EsimManagerTest::TearDown() {}
 #ifdef CORE_SERVICE_SUPPORT_ESIM
 HWTEST_F(EsimManagerTest, OnInit_001, Function | MediumTest | Level1)
 {
-    int32_t slotCount = 6;
+    int32_t slotCount = ESIM_MAX_SLOT_COUNT + 1;
     bool ret = esimManager->OnInit(slotCount);
     EXPECT_FALSE(ret);
 
