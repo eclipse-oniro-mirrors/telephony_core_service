@@ -779,7 +779,9 @@ HWTEST_F(BranchTest, Telephony_CoreManagerInner_005, Function | MediumTest | Lev
     EXPECT_NE(mInner.GetSimState(0, simState), TELEPHONY_ERR_SUCCESS);
     CardType cardType = CardType::UNKNOWN_CARD;
     EXPECT_NE(mInner.GetCardType(0, cardType), TELEPHONY_ERR_SUCCESS);
+    mInner.simManager_ = std::make_shared<mock_sim_manager>();
     EXPECT_EQ(mInner.RefreshSimState(0), TELEPHONY_ERR_SUCCESS);
+    mInner.simManager_ = nullptr
     EXPECT_NE(mInner.GetSlotId(0), TELEPHONY_ERR_SUCCESS);
     EXPECT_NE(mInner.GetSimId(0), TELEPHONY_ERR_SUCCESS);
     SimLabel simLabel;
