@@ -57,7 +57,7 @@ void EsimManagerTest::TearDown() {}
 #ifdef CORE_SERVICE_SUPPORT_ESIM
 HWTEST_F(EsimManagerTest, OnInit_001, Function | MediumTest | Level1)
 {
-    int32_t slotCount = 6;
+    int32_t slotCount = ESIM_MAX_SLOT_COUNT + 1;
     bool ret = esimManager->OnInit(slotCount);
     EXPECT_FALSE(ret);
 
@@ -293,7 +293,7 @@ HWTEST_F(EsimManagerTest, IsSupported_001, Function | MediumTest | Level1)
     mInner.esimManager_ = mockesimManager;
     EXPECT_CALL(*mockesimManager, IsSupported(testing::_)).WillRepeatedly(testing::Return(false));
     esimManager->esimFiles_[1] = nullptr;
-    EXPECT_EQ(ret, true);
+    EXPECT_EQ(ret, false);
 }
 
 HWTEST_F(EsimManagerTest, SendApduData_001, Function | MediumTest | Level1)

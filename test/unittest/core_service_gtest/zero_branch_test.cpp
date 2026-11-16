@@ -779,7 +779,6 @@ HWTEST_F(BranchTest, Telephony_CoreManagerInner_005, Function | MediumTest | Lev
     EXPECT_NE(mInner.GetSimState(0, simState), TELEPHONY_ERR_SUCCESS);
     CardType cardType = CardType::UNKNOWN_CARD;
     EXPECT_NE(mInner.GetCardType(0, cardType), TELEPHONY_ERR_SUCCESS);
-    EXPECT_EQ(mInner.RefreshSimState(0), TELEPHONY_ERR_SUCCESS);
     EXPECT_NE(mInner.GetSlotId(0), TELEPHONY_ERR_SUCCESS);
     EXPECT_NE(mInner.GetSimId(0), TELEPHONY_ERR_SUCCESS);
     SimLabel simLabel;
@@ -858,6 +857,9 @@ HWTEST_F(BranchTest, Telephony_CoreManagerInner_006, Function | MediumTest | Lev
     sptr<SimAccountCallback> simAccountCallback;
     int32_t imsSwitchValue = 1;
     EXPECT_EQ(mInner.RegisterSimAccountCallback(tokenId, simAccountCallback), TELEPHONY_ERR_LOCAL_PTR_NULL);
+    mInner.simManager_ = std::make_shared<MockSimManager>();
+    EXPECT_EQ(mInner.RefreshSimState(0), TELEPHONY_ERR_SUCCESS);
+    mInner.simManager_ = nullptr;
     EXPECT_EQ(mInner.UnregisterSimAccountCallback(simAccountCallback), TELEPHONY_ERR_LOCAL_PTR_NULL);
     EXPECT_EQ(mInner.GetSmscAddr(INVALID_SLOTID, 1, handler), TELEPHONY_ERR_LOCAL_PTR_NULL);
     EXPECT_EQ(mInner.QueryImsSwitch(INVALID_SLOTID, imsSwitchValue), TELEPHONY_ERROR);
