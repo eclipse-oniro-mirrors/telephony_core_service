@@ -80,7 +80,11 @@ ohos_unittest("utils_vcard_branch_gtest") {
   test_module = "core_service"
   module_out_path = part_name + "/" + test_module
 
-  sources = [ "contact_data_branch_test.cpp" ]
+  sources = [
+    "contact_data_branch_test.cpp"
+    "contact_data_extra_test.cpp",
+    "vcard_coverage_test.cpp",
+    ]
 
   include_dirs = [
     "$SOURCE_DIR/interfaces/innerkits/include",
