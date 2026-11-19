@@ -417,7 +417,7 @@ HWTEST_F(SenseNapiBranchTest, CompleteCallback003, Function | MediumTest | Level
 
 /**
  * @tc.number  Telephony_Sense_CompleteCallback_0400
- * @tc.name    stop/keep callbacks with null context and failure result take early paths
+ * @tc.name    null contexts take early paths, stop failure and keep success retain registration
  */
 HWTEST_F(SenseNapiBranchTest, CompleteCallback004, Function | MediumTest | Level1)
 {
@@ -436,7 +436,7 @@ HWTEST_F(SenseNapiBranchTest, CompleteCallback004, Function | MediumTest | Level
     auto keepContext = std::make_unique<SenseAsyncContext>();
     keepContext->result = static_cast<int32_t>(SenseHiddenCameraDetectionRsltCode::SUCCESS);
     KeepHiddenCameraDetectionCallback(nullptr, napi_ok, keepContext.release());
-    EXPECT_FALSE(state.registered);
+    EXPECT_TRUE(state.registered);
 }
 } // namespace Telephony
 } // namespace OHOS
