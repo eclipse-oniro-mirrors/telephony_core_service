@@ -33,6 +33,7 @@ using namespace testing;
 
 class CardFileDetectManagerCoverageTest : public testing::Test {
 public:
+    static constexpr int32_t TEST_MNC_LEN = 2;
     static void SetUpTestCase();
     static void TearDownTestCase();
     void SetUp();
@@ -48,7 +49,7 @@ protected:
         CardFileDetectData data;
         data.phyCard = phyCard;
         data.lsi = 1;
-        data.mncLen = 2;
+        data.mncLen = TEST_MNC_LEN;
         data.iccId = "89860012345678901234";
         data.efust = "FFFFFFFF";
         data.imsi = "460001234567890";
