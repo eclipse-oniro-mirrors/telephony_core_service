@@ -30,10 +30,10 @@ namespace OHOS {
 namespace Telephony {
 using namespace testing::ext;
 using namespace testing;
+constexpr int32_t TEST_MNC_LEN = 2;
 
 class CardFileDetectManagerCoverageTest : public testing::Test {
 public:
-    static constexpr int32_t TEST_MNC_LEN = 2;
     static void SetUpTestCase();
     static void TearDownTestCase();
     void SetUp();
