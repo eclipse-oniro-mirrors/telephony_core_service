@@ -31,10 +31,10 @@ class TelephonyDataHelper : public DelayedSingleton<TelephonyDataHelper> {
 public:
     static constexpr const char *SIM_DB_URI =
         "datashare:///com.ohos.telephonydataability/entry/sim/sim_info?Proxy=true";
-    static constexpr const char *SIM_URI = "datashare:///com.ohos.simability";
+    static constexpr const char *SIM_URI = "datashare:///com.ohos.simability?user=100";
     static constexpr const char *OPKEY_DB_URI =
         "datashare:///com.ohos.telephonydataability/entry/opkey/opkey_info?Proxy=true";
-    static constexpr const char *OPKEY_URI = "datashare:///com.ohos.opkeyability";
+    static constexpr const char *OPKEY_URI = "datashare:///com.ohos.opkeyability?user=100";
     static constexpr const char *PDP_DB_URI =
         "datashare:///com.ohos.telephonydataability/entry/net/pdp_profile?Proxy=true";
     static constexpr const char *PDP_URI = "datashare:///com.ohos.pdpprofileability";
