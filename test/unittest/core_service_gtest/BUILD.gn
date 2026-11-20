@@ -1352,6 +1352,7 @@ ohos_unittest("tel_network_search_branch_gtest") {
 
     # Test cases
     "network_search_branch_test.cpp",
+    "network_search_coverage_test.cpp",
   ]
 
   include_dirs = [
