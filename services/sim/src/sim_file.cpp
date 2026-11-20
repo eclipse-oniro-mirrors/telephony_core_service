@@ -194,9 +194,10 @@ void SimFile::ProcessEvent(const AppExecFwk::InnerEvent::Pointer &event)
     bool isFileProcessResponse = false;
     std::unique_ptr<ControllerToFileMsg> fd = event->GetUniqueObject<ControllerToFileMsg>();
     if (fd != nullptr) {
-        if (fd->serialId > 0 && fd->serialId <= lastSerialId_ && lastSerialId_ - fd->serialId < INT32_MAX / HALF_NUMBER) {
-            TELEPHONY_LOGE("SimFile slotId = %{public}d, lastSerialId_ = %{public}d, fd->serialId = %{public}d",
-                slotId_, lastSerialId_, fd->serialId);
+        if (fd->serialId > 0 && fd->serialId <= lastSerialId_ && lastSerialId_ - fd->serialId <
+            INT32_MAX / HALF_NUMBER) {
+                TELEPHONY_LOGE("SimFile slotId = %{public}d, lastSerialId_ = %{public}d, fd->serialId = %{public}d",
+                    slotId_, lastSerialId_, fd->serialId);
                             return;
         }
         AppExecFwk::InnerEvent::Pointer newEvent = AppExecFwk::InnerEvent::Get(id, fd);
