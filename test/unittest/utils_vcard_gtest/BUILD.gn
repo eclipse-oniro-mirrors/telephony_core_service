@@ -89,6 +89,7 @@ ohos_unittest("utils_vcard_branch_gtest") {
   include_dirs = [
     "$SOURCE_DIR/interfaces/innerkits/include",
     "$SOURCE_DIR/utils/vcard/include",
+    "$SOURCE_DIR/test/mock"
   ]
 
   deps = [ "$SOURCE_DIR/utils:libtel_vcard" ]
@@ -104,6 +105,7 @@ ohos_unittest("utils_vcard_branch_gtest") {
     "drivers_interface_ril:libril_proxy_1.3",
     "drivers_interface_ril:ril_idl_headers",
     "eventhandler:libeventhandler",
+    "googletest:gmock_main",
     "googletest:gtest_main",
     "hdf_core:libhdi",
     "ffrt:libffrt",
