@@ -169,11 +169,6 @@ private:
     static const uint8_t CPHS_VOICE_MAIL_MASK = 0x30;
     static const uint8_t CPHS_VOICE_MAIL_EXSIT = 0x30;
     int ObtainExtensionElementaryFile(int ef);
-    bool CphsVoiceMailAvailable();
-    bool EfCfisAvailable(int32_t size);
-    void GetCphsMailBox();
-    bool FillNumber(std::shared_ptr<unsigned char> efCfisData, int32_t efCfisSize, const std::string &number);
-    bool VoiceMailNotEditToSim();
     bool IsAvailable(uint8_t offset, uint8_t mask);
     bool IsSimServiceAvailable(UsimService service);
     bool IsUsimServiceAvailable(UsimService service);
@@ -182,6 +177,8 @@ private:
     std::shared_ptr<SimFileInit> simFileInit_;
     friend class SimFileParse;
     std::shared_ptr<SimFileParse> simFileParse_;
+    friend class SimFileVoiceMail;
+    std::shared_ptr<SimFileVoiceMail> SimFileVoiceMail_;
     std::string serviceTable_;
 };
 } // namespace Telephony

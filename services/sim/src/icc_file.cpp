@@ -1005,6 +1005,11 @@ inline void IccFile::SetMatchSimStateTracker(int8_t matchSimStateTracker)
         operatorConfigHisysevent->SetMatchSimStateTracker(matchSimStateTracker, slotId_);
     }
 }
+
+int32_t IccFile::GetLastSerialId()
+{
+    return lastSerialId_;
+}
 } // namespace Telephony
 } // namespace OHOS
 // LOCV_EXCL_STOP

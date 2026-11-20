@@ -99,6 +99,11 @@ public:
     {
     }
 
+    virtual int32_t GetLastSerialId()
+    {
+        return Telephony::TELEPHONY_ERR_UNINIT;
+    }
+
 protected:
     std::weak_ptr<OHOS::Telephony::IIccFileExt> iccFile_;
 };

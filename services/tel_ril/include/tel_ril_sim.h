@@ -115,6 +115,7 @@ public:
     int32_t SendSimMatchedOperatorInfoResponse(const HDI::Ril::V1_1::RilRadioResponseInfo &responseInfo);
     int32_t GetPrimarySlotResponse(const HDI::Ril::V1_1::RilRadioResponseInfo &responseInfo, int32_t primarySlotId);
     int32_t SetPrimarySlotResponse(const HDI::Ril::V1_1::RilRadioResponseInfo &responseInfo);
+    int32_t GetCurrentSerialId(void);
 
 private:
     int32_t ProcessIccIoInfo(

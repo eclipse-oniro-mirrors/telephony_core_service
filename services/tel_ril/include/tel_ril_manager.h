@@ -296,6 +296,7 @@ public:
         const AppExecFwk::InnerEvent::Pointer &response) override;
     int32_t CloseUnFinishedUssd(int32_t slotId, const AppExecFwk::InnerEvent::Pointer &response) override;
     int32_t InitTelExtraModule(int32_t slotId) override;
+    int32_t GetCurrentSerialId() override;
     /**
      * Register hdf status listener
      *
