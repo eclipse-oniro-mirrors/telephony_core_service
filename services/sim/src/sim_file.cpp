@@ -1916,7 +1916,7 @@ bool SimFile::SetVoiceMailCount(int32_t voiceMailCount)
 
 bool SimFile::SetVoiceCallForwarding(bool enable, const std::string &number)
 {
-   return simFileVoiceMail_->SetVoiceCallForwarding(enable,number, *this);
+    return simFileVoiceMail_->SetVoiceCallForwarding(enable, number, *this);
 }
 
 void SimFile::ClearData()
