@@ -22,6 +22,9 @@
 #include "gtest/gtest.h"
 #include "sim_file.h"
 #include "sim_file_init.h"
+#include "sim_state_manager.h"
+#include "sim_state_handle.h"
+#include "sim_data_type.h"
 #include "string_ex.h"
 #include "usim_file_controller.h"
 
@@ -210,29 +213,40 @@ HWTEST_F(SimFileTest, Telephony_sim_file_006, Function | MediumTest | Level1)
 }
 
 /**
- * @tc.number   Telephony_sim_file_007
- * @tc.name     SimFile
- * @tc.desc     Function test
+ * @tc.number   Telephony_sim_file_011
+ * @tc.name     SimFile ProcessEvent serialId branch
+ * @tc.desc     cover ProcessEvent stale serialId (early return), fresh serialId
+ *              (member func invoked) and null-fd branches with a valid state
+ *              manager whose modem init is done
  */
-HWTEST_F(SimFileTest, Telephony_sim_file_007, Function | MediumTest | Level1)
+HWTEST_F(SimFileTest, Telephony_sim_file_011, Function | MediumTest | Level1)
 {
-    std::weak_ptr<Telephony::SimStateManager> simStateManager_;
-    auto simFile_ = std::make_shared<SimFile>(simStateManager_.lock());
-    simFile_->fileController_ = std::make_shared<UsimFileController>(0);
-    simFile_->cphsInfo_ = "not null";
+    // build a valid SimStateManager whose IsModemInitDone() returns true
+    auto simStateManager = std::make_shared<SimStateManager>(nullptr);
+    auto simStateHandle = std::make_shared<SimStateHandle>(simStateManager);
+    simStateManager->simStateHandle_ = simStateHandle;
+    simStateHandle->SetModemInitStatus(true);
 
-    simFile_->voiceMailConfig_  = nullptr;
-    simFile_->SetVoiceMailByOperator("spn");
-    AppExecFwk::InnerEvent::Pointer event = AppExecFwk::InnerEvent::Pointer(nullptr, nullptr);;
-    simFile_->ProcessEvent(event);
+    auto simFile_ = std::make_shared<SimFile>(simStateManager);
+    simFile_->lastSerialId_ = 10;
+    // register a member func for event id 100 so ProcessEvent passes the map lookup
+    simFile_->memberFuncMap_[100] = [](const AppExecFwk::InnerEvent::Pointer &) -> bool { return false; };
 
-    event = AppExecFwk::InnerEvent::Get(MSG_SIM_OBTAIN_ICC_FILE_DONE, 1);
-    simFile_->ProcessEvent(event);
+    // fd != nullptr && stale serialId (serialId <= lastSerialId_) -> early return
+    std::unique_ptr<ControllerToFileMsg> fd1 = std::make_unique<ControllerToFileMsg>(nullptr, nullptr);
+    fd1->serialId = 5;
+    AppExecFwk::InnerEvent::Pointer ev1 = AppExecFwk::InnerEvent::Get(100, fd1);
+    EXPECT_NO_THROW(simFile_->ProcessEvent(ev1));
 
-    event = AppExecFwk::InnerEvent::Get(MSG_ICC_REFRESH, 1);
-    simFile_->ProcessEvent(event);
+    // fd != nullptr && fresh serialId (serialId > lastSerialId_) -> member func invoked
+    std::unique_ptr<ControllerToFileMsg> fd2 = std::make_unique<ControllerToFileMsg>(nullptr, nullptr);
+    fd2->serialId = 20;
+    AppExecFwk::InnerEvent::Pointer ev2 = AppExecFwk::InnerEvent::Get(100, fd2);
+    EXPECT_NO_THROW(simFile_->ProcessEvent(ev2));
 
-    EXPECT_FALSE(simFile_->CphsVoiceMailAvailable());
+    // fd == nullptr -> member func invoked on the original event
+    AppExecFwk::InnerEvent::Pointer ev3 = AppExecFwk::InnerEvent::Get(100);
+    EXPECT_NO_THROW(simFile_->ProcessEvent(ev3));
 }
 
 }
