@@ -22,6 +22,7 @@ namespace OHOS {
 namespace Telephony {
 class SimFileInit;
 class SimFileParse;
+class SimFileVoiceMail;
 class SimFile : public IccFile {
 public:
     explicit SimFile(std::shared_ptr<SimStateManager> simStateManager);
