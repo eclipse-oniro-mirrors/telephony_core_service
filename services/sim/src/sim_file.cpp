@@ -187,7 +187,7 @@ void SimFile::ProcessEvent(const AppExecFwk::InnerEvent::Pointer &event)
         return;
     }
     auto memberFunc = itFunc->second;
-    if (memberFunc == nullptr || stateManager_ == nullptr || !stateManager_->IsModemOnitDone()) {
+    if (memberFunc == nullptr || stateManager_ == nullptr || !stateManager_->IsModemInitDone()) {
         TELEPHONY_LOGE("func or stateManager_ or modeminitdone invalid");
         return;
     }
