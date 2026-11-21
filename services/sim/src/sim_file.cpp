@@ -24,6 +24,7 @@
 #include "radio_event.h"
 #include "sim_file_init.h"
 #include "sim_file_parse.h"
+#include "sim_file_voicemail.h"
 #include "sim_number_decode.h"
 #include "telephony_common_utils.h"
 #include "telephony_ext_wrapper.h"
