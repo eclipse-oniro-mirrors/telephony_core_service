@@ -57,7 +57,7 @@ SimFile::SimFile(std::shared_ptr<SimStateManager> simStateManager) : IccFile("Si
     simFileInit_ = std::make_shared<SimFileInit>();
     simFileInit_->InitMemberFunc(*this);
     simFileParse_ = std::make_shared<SimFileParse>();
-    SimFileVoiceMail_ = std::make_shared<SimFileVoiceMail>();
+    simFileVoiceMail_ = std::make_shared<SimFileVoiceMail>();
 }
 
 void SimFile::StartLoad()
