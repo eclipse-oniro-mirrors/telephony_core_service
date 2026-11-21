@@ -1064,7 +1064,6 @@ bool SimFile::ProcessObtainIMSIDone(const AppExecFwk::InnerEvent::Pointer &event
     } else {
             ReloadImsiDelay();
         }
-    }
     return isFileProcessResponse;
 }
 
