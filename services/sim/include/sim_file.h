@@ -166,7 +166,7 @@ private:
     const int SPN_CHAR_POS = 0;
     const int MAIL_DELAY_TIME = 50 * 1000;
     const int RELOAD_ICCID_COUNT = 3;
-    bool hasRetryGetImsi_ = false;
+    bool hasReloadImsi_ = false;
     static const uint8_t CPHS_VOICE_MAIL_MASK = 0x30;
     static const uint8_t CPHS_VOICE_MAIL_EXSIT = 0x30;
     int ObtainExtensionElementaryFile(int ef);

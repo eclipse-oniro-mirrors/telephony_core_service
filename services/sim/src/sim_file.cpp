@@ -1037,7 +1037,7 @@ bool SimFile::ProcessReloadImsi(const AppExecFwk::InnerEvent::Pointer &event)
     }
     AppExecFwk::InnerEvent::Pointer eventIMSI = BuildCallerInfo(MSG_SIM_OBTAIN_IMSI_DONE);
     telRilManager_->GetImsi(slotId_, eventIMSI);
-    hasRetryGetImsi_ = true;
+    hasReloadImsi_ = true;
     return isFileProcessResponse;
 }
 
@@ -1068,10 +1068,10 @@ bool SimFile::ProcessObtainIMSIDone(const AppExecFwk::InnerEvent::Pointer &event
     return isFileProcessResponse;
 }
 
-void SimFile::DelayGetImsi()
+void SimFile::ReloadImsiDelay()
 {
-    if (hasRetryGetImsi_) {
-        TELEPHONY_LOGI("DelayGetImsi has retried, slotId = %{public}d", slotId_);
+    if (hasReloadImsi_) {
+        TELEPHONY_LOGI("ReloadImsiDelay has reloaded, slotId = %{public}d", slotId_);
         return;
     }
     fileToGet_++;
@@ -1926,7 +1926,7 @@ void SimFile::ClearData()
 {
     spnStatus_ = OBTAIN_SPN_NONE;
     reloadIccidCount_ = RELOAD_ICCID_COUNT;
-    hasRetryGetImsi_ = false;
+    hasReloadImsi_ = false;
     lastSerialId_ = telRilManager_->GetCurrentSerialId();
     TELEPHONY_LOGI("SimFile ClearData lastSerialId_ = %{public}d", lastSerialId_);
     RemoveEvent(SimFile::RELOAD_IMSI_EVENT);
