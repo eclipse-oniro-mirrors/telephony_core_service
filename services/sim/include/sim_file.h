@@ -178,7 +178,7 @@ private:
     friend class SimFileParse;
     std::shared_ptr<SimFileParse> simFileParse_;
     friend class SimFileVoiceMail;
-    std::shared_ptr<SimFileVoiceMail> SimFileVoiceMail_;
+    std::shared_ptr<SimFileVoiceMail> simFileVoiceMail_;
     std::string serviceTable_;
 };
 } // namespace Telephony
