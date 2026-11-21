@@ -141,7 +141,7 @@ private:
     bool ProcessObtainPlLanguage(const AppExecFwk::InnerEvent::Pointer &event);
     bool ProcessReloadIccid(const AppExecFwk::InnerEvent::Pointer &event);
     bool ProcessReloadImsi(const AppExecFwk::InnerEvent::Pointer &event);
-    void DelayGetImsi();
+    void ReloadImsiDelay();
     bool ProcessGetSpnCphsDone(const AppExecFwk::InnerEvent::Pointer &event);
     bool ProcessGetSpnShortCphsDone(const AppExecFwk::InnerEvent::Pointer &event);
     void StartObtainSpn();

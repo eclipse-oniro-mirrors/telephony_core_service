@@ -1984,7 +1984,7 @@ void SimFile::OnParamChanged(const char *key, const char *value, void *context)
         return;
     }
     if (instance->stateManager_->HasSimCard()) {
-        instance->DelayGetImsi();
+        instance->ReloadImsiDelay();
     }
 }
 } // namespace Telephony
