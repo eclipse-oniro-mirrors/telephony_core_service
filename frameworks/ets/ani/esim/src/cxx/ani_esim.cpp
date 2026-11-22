@@ -175,6 +175,7 @@ ArktsError IsSupported(int32_t slotId, bool &isSupportedResult)
     } else {
         isSupportedResult = true;
     }
+    errorCode = TELEPHONY_SUCCESS;
     return ConvertArktsErrorWithPermission(errorCode, "isSupported", Permission::GET_TELEPHONY_ESIM_STATE);
 }
 
