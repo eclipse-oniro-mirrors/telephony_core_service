@@ -120,7 +120,7 @@ void SimStateManager::SetSimState(SimState simState)
 bool SimStateManager::IsModemInitDone()
 {
     if (simStateHandle_ != nullptr) {
-        return simStateHandle_->modemInitDone_;
+        return simStateHandle_->GetModemInitStatus;
     }
     return false;
 }
@@ -157,7 +157,7 @@ int32_t SimStateManager::SetModemInit(bool state)
 {
     if (simStateHandle_ != nullptr) {
         TELEPHONY_LOGI("state: %{public}d", state);
-        simStateHandle_->modemInitDone_ = state;
+        simStateHandle_->SetModemInitStatus = state;
         if (!state) {
             TELEPHONY_LOGI("SetModemInit to false, it should set simstate to init state");
             simStateHandle_->oldSimType_ = ICC_UNKNOWN_TYPE;

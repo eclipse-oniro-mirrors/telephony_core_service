@@ -1148,11 +1148,6 @@ void SimStateHandle::ProcessRadioStateUnavailable()
     }
 }
 
-void SimStateHandle::SetModemInitStatus(bool IsModemInitDone)
-{
-    modemInitDone_ = isModemInitDone;
-}
-
 int32_t SimStateHandle::GetSimIO(int32_t slotId, SimIoRequestInfo requestInfo)
 {
     auto event = AppExecFwk::InnerEvent::Get(MSG_SIM_GET_SIM_IO_DONE);

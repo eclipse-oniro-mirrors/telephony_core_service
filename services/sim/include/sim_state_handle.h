@@ -153,7 +153,6 @@ public:
     int32_t GetSimIO(int32_t slotId, SimIoRequestInfo requestInfo);
     SimAuthenticationResponse GetSimIOResponse();
     int32_t SetIccCardState(int32_t slotId, int32_t simStatus);
-    void SetModemInitStatus(bool isModemInitDone);
     void ObtainIccStatus();
     void SetInSenseSwitchPhase(bool flag);
     void UpdateSimStateToStateRegistry();
@@ -173,6 +172,11 @@ public:
     {
         operatorConfigHisysevent_ = operatorConfigHisysevent;
     };
+
+public:
+    bool modemInitDone_ = false;
+    int32_t oldSimType_ = ICC_UNKNOWN_TYPE;
+    int32_t oldSimStatus_ = ICC_CONTENT_UNKNOWN;
 
 private:
     void ObtainIccStatus(int32_t slotId);
@@ -209,9 +213,6 @@ private:
 
 private:
     static const std::map<uint32_t, Func> memberFuncMap_;
-    bool modemInitDone_ = false;
-    int32_t oldSimType_ = ICC_UNKNOWN_TYPE;
-    int32_t oldSimStatus_ = ICC_CONTENT_UNKNOWN;
     int32_t slotId_ = DEFAULT_SIM_SLOT_ID;
     UnlockData unlockRespon_ = { UNLOCK_FAIL, TELEPHONY_ERROR, static_cast<int32_t>(LockState::LOCK_ERROR) };
     SimAuthenticationResponse simAuthRespon_ = { 0 };

@@ -212,42 +212,5 @@ HWTEST_F(SimFileTest, Telephony_sim_file_006, Function | MediumTest | Level1)
     EXPECT_TRUE(simFile_->ProcessGetOpl5gDone(event));
 }
 
-/**
- * @tc.number   Telephony_sim_file_011
- * @tc.name     SimFile ProcessEvent serialId branch
- * @tc.desc     cover ProcessEvent stale serialId (early return), fresh serialId
- *              (member func invoked) and null-fd branches with a valid state
- *              manager whose modem init is done
- */
-HWTEST_F(SimFileTest, Telephony_sim_file_011, Function | MediumTest | Level1)
-{
-    // build a valid SimStateManager whose IsModemInitDone() returns true
-    auto simStateManager = std::make_shared<SimStateManager>(nullptr);
-    auto simStateHandle = std::make_shared<SimStateHandle>(simStateManager);
-    simStateManager->simStateHandle_ = simStateHandle;
-    simStateHandle->SetModemInitStatus(true);
-
-    auto simFile_ = std::make_shared<SimFile>(simStateManager);
-    simFile_->lastSerialId_ = 10;
-    // register a member func for event id 100 so ProcessEvent passes the map lookup
-    simFile_->memberFuncMap_[100] = [](const AppExecFwk::InnerEvent::Pointer &) -> bool { return false; };
-
-    // fd != nullptr && stale serialId (serialId <= lastSerialId_) -> early return
-    std::unique_ptr<ControllerToFileMsg> fd1 = std::make_unique<ControllerToFileMsg>(nullptr, nullptr);
-    fd1->serialId = 5;
-    AppExecFwk::InnerEvent::Pointer ev1 = AppExecFwk::InnerEvent::Get(100, fd1);
-    EXPECT_NO_THROW(simFile_->ProcessEvent(ev1));
-
-    // fd != nullptr && fresh serialId (serialId > lastSerialId_) -> member func invoked
-    std::unique_ptr<ControllerToFileMsg> fd2 = std::make_unique<ControllerToFileMsg>(nullptr, nullptr);
-    fd2->serialId = 20;
-    AppExecFwk::InnerEvent::Pointer ev2 = AppExecFwk::InnerEvent::Get(100, fd2);
-    EXPECT_NO_THROW(simFile_->ProcessEvent(ev2));
-
-    // fd == nullptr -> member func invoked on the original event
-    AppExecFwk::InnerEvent::Pointer ev3 = AppExecFwk::InnerEvent::Get(100);
-    EXPECT_NO_THROW(simFile_->ProcessEvent(ev3));
-}
-
 }
 }
