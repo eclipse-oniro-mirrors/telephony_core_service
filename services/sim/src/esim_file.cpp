@@ -83,11 +83,11 @@ ResultInnerCode EsimFile::ObtainChannelSuccessExclusive(const SimMessage msgType
         TELEPHONY_LOGE("The channel is in use");
         return ResultInnerCode::RESULT_EUICC_CARD_CHANNEL_IN_USE;
     }
-
+    openChannelReady_ = false;
     ProcessEsimOpenChannel(aid, msgType);
     std::unique_lock<ffrt::mutex> lck(openChannelMutex_);
     if (!openChannelCv_.wait_for(lck, std::chrono::seconds(WAIT_TIME_OPEN_CHANNEL_FOR_ESIM),
-        [this, msgType] { return IsLogicChannelOpen(msgType); })) {
+        [this, msgType] { return openChannelReady_; })) {
         TELEPHONY_LOGE("wait cv failed!");
     }
 
@@ -113,10 +113,11 @@ ResultInnerCode EsimFile::ObtainChannelSuccessAllowSameAidReuse(const std::u16st
     }
 
     if (!IsLogicChannelOpen(MSG_ESIM_OPEN_CHANNEL_DONE)) {
+        openChannelReady_ = false;
         ProcessEsimOpenChannel(aid, MSG_ESIM_OPEN_CHANNEL_DONE);
         std::unique_lock<ffrt::mutex> lck(openChannelMutex_);
         if (!openChannelCv_.wait_for(lck, std::chrono::seconds(WAIT_TIME_SHORT_SECOND_FOR_ESIM),
-            [this]() { return IsLogicChannelOpen(MSG_ESIM_OPEN_CHANNEL_DONE); })) {
+            [this]() { return openChannelReady_; })) {
             TELEPHONY_LOGE("wait cv failed!");
         }
     }
@@ -400,6 +401,8 @@ bool EsimFile::ProcessEsimOpenChannelDone(const AppExecFwk::InnerEvent::Pointer 
     }
     if (resultPtr->channelId <= 0) {
         TELEPHONY_LOGE("channelId is invalid!");
+        std::unique_lock<ffrt::mutex> lock(openChannelMutex_);
+        openChannelReady_ = true;
         openChannelCv_.notify_all();
         return false;
     }
@@ -415,10 +418,13 @@ bool EsimFile::ProcessEsimOpenChannelDone(const AppExecFwk::InnerEvent::Pointer 
         // caller exits waiting, thus lock is obtained and the channel needs released
         ProcessEsimCloseSpareChannel();
         occupyChannelMutex_.unlock();
+        std::unique_lock<ffrt::mutex> lock(openChannelMutex_);
+        openChannelReady_ = true;
         openChannelCv_.notify_all();
         return false;
     }
-
+    std::unique_lock<ffrt::mutex> lock(openChannelMutex_);
+    openChannelReady_ = true;
     openChannelCv_.notify_all();
     return true;
 }
