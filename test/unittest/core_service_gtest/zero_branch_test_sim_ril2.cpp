@@ -695,11 +695,11 @@ HWTEST_F(SimRilBranchTest2, Telephony_SimFile_Expand009, Function | MediumTest |
     simFile->ProcessMarkSms(event);
     simFile->ProcessObtainSpnPhase(event);
     simFile->ObtainExtensionElementaryFile(0);
-    simFile->VoiceMailNotEditToSim();
+    simFile->simFileVoiceMail_->VoiceMailNotEditToSim();
     simFile->UpdateVoiceMail("", "");
     simFile->SetVoiceMailCount(3);
     auto cPtr = std::make_shared<unsigned char>(3);
-    simFile->FillNumber(cPtr, 3, "123");
+    simFile->simFileVoiceMail_->FillNumber(cPtr, 3, "123");
 }
 
 HWTEST_F(SimRilBranchTest2, Telephony_SimFile_Expand010, Function | MediumTest | Level1)
@@ -845,7 +845,7 @@ HWTEST_F(SimRilBranchTest2, Telephony_SimFile_Expand012, Function | MediumTest |
     event = AppExecFwk::InnerEvent::Get(0, objectUnique);
     simFile->ProcessGetHplmActDone(event);
 
-    simFile->GetCphsMailBox();
+    simFile->simFileVoiceMail_->GetCphsMailBox();
 
     event.reset();
     simFile->ProcessReloadIccid(event);
