@@ -283,6 +283,7 @@ private:
 
     ffrt::mutex openChannelMutex_;
     ffrt::condition_variable openChannelCv_;
+    bool openChannelReady_ = false;
 
     ffrt::mutex getEidMutex_;
     ffrt::condition_variable getEidCv_;
