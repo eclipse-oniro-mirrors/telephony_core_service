@@ -34,6 +34,7 @@
 #include "sim_account_manager.h"
 #include "sim_data_type.h"
 #include "sim_file_controller.h"
+#include "sim_file_voicemail.h"
 #include "sim_manager.h"
 #include "sim_rdb_helper.h"
 #include "sim_sms_manager.h"
