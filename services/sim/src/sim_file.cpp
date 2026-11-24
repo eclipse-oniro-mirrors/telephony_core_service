@@ -197,9 +197,9 @@ void SimFile::ProcessEvent(const AppExecFwk::InnerEvent::Pointer &event)
     if (fd != nullptr) {
         if (fd->serialId > 0 && fd->serialId <= lastSerialId_ && lastSerialId_ - fd->serialId <
             INT32_MAX / HALF_NUMBER) {
-                TELEPHONY_LOGE("SimFile slotId = %{public}d, lastSerialId_ = %{public}d, fd->serialId = %{public}d",
-                    slotId_, lastSerialId_, fd->serialId);
-                            return;
+            TELEPHONY_LOGE("SimFile slotId = %{public}d, lastSerialId_ = %{public}d, fd->serialId = %{public}d",
+                slotId_, lastSerialId_, fd->serialId);
+            return;
         }
         AppExecFwk::InnerEvent::Pointer newEvent = AppExecFwk::InnerEvent::Get(id, fd);
         isFileProcessResponse = memberFunc(newEvent);
@@ -1063,7 +1063,7 @@ bool SimFile::ProcessObtainIMSIDone(const AppExecFwk::InnerEvent::Pointer &event
         FileChangeToExt(imsi_, FileChangeType::G_IMSI_FILE_LOAD);
     } else {
         ReloadImsiDelay();
-        }
+    }
     return isFileProcessResponse;
 }
 
