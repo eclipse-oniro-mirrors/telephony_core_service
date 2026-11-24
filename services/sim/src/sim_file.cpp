@@ -24,6 +24,7 @@
 #include "radio_event.h"
 #include "sim_file_init.h"
 #include "sim_file_parse.h"
+#include "sim_file_voicemail.h"
 #include "sim_number_decode.h"
 #include "telephony_common_utils.h"
 #include "telephony_ext_wrapper.h"
@@ -41,15 +42,12 @@ constexpr static const int32_t WAIT_TIME_SECOND = 1;
 const int64_t DELAY_TIME = 500;
 const int64_t GET_IMSI_DELAY_TIME = 2000;
 const int BYTE_TO_BIT_LEN = 8;
+const int HALF_NUMBER = 2;
 const uint8_t HEX_TO_BYTE_LEN = 2;
-const int CFIS_BCD_NUMBER_LENGTH_OFFSET = 2;
-const int CFIS_TON_NPI_OFFSET = 3;
 const uint8_t SST_SPN_OFFSET = 4;
 const uint8_t SST_SPN_MASK = 0x3;
 const uint8_t SST_PNN_OFFSET = 12;
 const uint8_t SST_PNN_MASK = 0x30;
-const int CFIS_ADN_CAPABILITY_ID_OFFSET = 14;
-const int CFIS_ADN_EXTENSION_ID_OFFSET = 15;
 std::string PROP_SATE_STATUS = "persist.telephony.satellite.satelliteStatus";
 ffrt::mutex IccFile::mtx_;
 std::vector<std::string> SimFile::indiaMcc_;
@@ -60,6 +58,7 @@ SimFile::SimFile(std::shared_ptr<SimStateManager> simStateManager) : IccFile("Si
     simFileInit_ = std::make_shared<SimFileInit>();
     simFileInit_->InitMemberFunc(*this);
     simFileParse_ = std::make_shared<SimFileParse>();
+    simFileVoiceMail_ = std::make_shared<SimFileVoiceMail>();
 }
 
 void SimFile::StartLoad()
@@ -180,18 +179,34 @@ void SimFile::ProcessEvent(const AppExecFwk::InnerEvent::Pointer &event)
         TELEPHONY_LOGE("event is nullptr!");
         return;
     }
+
     auto id = event->GetInnerEventId();
     TELEPHONY_LOGD("SimFile::ProcessEvent id %{public}d, slotId_ = %{public}d", id, slotId_);
     auto itFunc = memberFuncMap_.find(id);
-    if (itFunc != memberFuncMap_.end()) {
-        auto memberFunc = itFunc->second;
-        if (memberFunc != nullptr && stateManager_ != nullptr && stateManager_->IsModemInitDone()) {
-            bool isFileProcessResponse = memberFunc(event);
-            ProcessFileLoaded(isFileProcessResponse);
-        }
-    } else {
+    if (itFunc == memberFuncMap_.end()) {
         IccFile::ProcessEvent(event);
+        return;
     }
+    auto memberFunc = itFunc->second;
+    if (memberFunc == nullptr || stateManager_ == nullptr || !stateManager_->IsModemInitDone()) {
+        TELEPHONY_LOGE("func or stateManager_ or modeminitdone invalid");
+        return;
+    }
+    bool isFileProcessResponse = false;
+    std::unique_ptr<ControllerToFileMsg> fd = event->GetUniqueObject<ControllerToFileMsg>();
+    if (fd != nullptr) {
+        if (fd->serialId > 0 && fd->serialId <= lastSerialId_ && lastSerialId_ - fd->serialId <
+            INT32_MAX / HALF_NUMBER) {
+            TELEPHONY_LOGE("SimFile slotId = %{public}d, lastSerialId_ = %{public}d, fd->serialId = %{public}d",
+                slotId_, lastSerialId_, fd->serialId);
+            return;
+        }
+        AppExecFwk::InnerEvent::Pointer newEvent = AppExecFwk::InnerEvent::Get(id, fd);
+        isFileProcessResponse = memberFunc(newEvent);
+    } else {
+        isFileProcessResponse = memberFunc(event);
+    }
+    ProcessFileLoaded(isFileProcessResponse);
 }
 
 void SimFile::ProcessIccRefresh(int msgId)
@@ -270,6 +285,8 @@ bool SimFile::ProcessIccReady(const AppExecFwk::InnerEvent::Pointer &event)
     TELEPHONY_LOGI("SimFile::SIM_STATE_READY received slotId = %{public}d", slotId_);
     CardType cardType = stateManager_->GetCardType();
     if (cardType == CardType::SINGLE_MODE_USIM_CARD || cardType == CardType::SINGLE_MODE_SIM_CARD) {
+        ClearData();
+        DeleteOperatorCache();
         LoadSimFiles();
     } else {
         TELEPHONY_LOGI("invalid SimFile::SIM_STATE_READY received %{public}d", cardType);
@@ -373,9 +390,10 @@ void SimFile::LoadSimOtherFileExt()
 
 void SimFile::LoadSimFiles()
 {
-    TELEPHONY_LOGI("SimFile LoadSimFiles started");
     fileQueried_ = true;
     fileToGet_ = 0;
+    lastSerialId_ = telRilManager_->GetCurrentSerialId();
+    TELEPHONY_LOGI("SimFile LoadSimFiles started, lastSerialId_ = %{public}d", lastSerialId_);
 
     AppExecFwk::InnerEvent::Pointer eventIMSI = BuildCallerInfo(MSG_SIM_OBTAIN_IMSI_DONE);
     telRilManager_->GetImsi(slotId_, eventIMSI);
@@ -758,7 +776,7 @@ bool SimFile::ProcessGetCfisDone(const AppExecFwk::InnerEvent::Pointer &event)
         unsigned char *fileData = rawData.get();
         TELEPHONY_LOGI("ELEMENTARY_FILE_CFIS: %{public}s", fileData);
         efCfis_ = fileData;
-        if (EfCfisAvailable(efCfisSize_)) {
+        if (simFileVoiceMail_->EfCfisAvailable(*this, efCfisSize_)) {
             // Refer TS 51.011 Section 10.3.46 for the content description
             callForwardingStatus = (efCfis_[1] & BYTE_NUM2);
             DelayedRefSingleton<TelephonyStateRegistryClient>::GetInstance().UpdateCfuIndicator(
@@ -823,7 +841,7 @@ bool SimFile::ProcessGetMbdnDone(const AppExecFwk::InnerEvent::Pointer &event)
     voiceMailTag_ = IccFileController::NULLSTR;
     if (fd->exception != nullptr) {
         TELEPHONY_LOGE("SimFile failed missing EF MBDN");
-        GetCphsMailBox();
+        simFileVoiceMail_->GetCphsMailBox(*this);
         return isFileProcessResponse;
     }
     std::shared_ptr<DiallingNumbersInfo> diallingNumber = std::static_pointer_cast<DiallingNumbersInfo>(fd->result);
@@ -833,7 +851,7 @@ bool SimFile::ProcessGetMbdnDone(const AppExecFwk::InnerEvent::Pointer &event)
     }
 
     if (diallingNumber->IsEmpty()) {
-        GetCphsMailBox();
+        simFileVoiceMail_->GetCphsMailBox(*this);
         return isFileProcessResponse;
     }
     voiceMailNum_ = Str16ToStr8(diallingNumber->GetNumber());
@@ -876,14 +894,6 @@ bool SimFile::ProcessGetCphsMailBoxDone(const AppExecFwk::InnerEvent::Pointer &e
     voiceMailTag_ = Str16ToStr8(diallingNumber->GetName());
     TELEPHONY_LOGI("GetCphsMailBoxDone success");
     return isFileProcessResponse;
-}
-
-void SimFile::GetCphsMailBox()
-{
-    fileToGet_ += LOAD_STEP;
-    AppExecFwk::InnerEvent::Pointer cphsEvent =
-        CreateDiallingNumberPointer(MSG_SIM_OBTAIN_CPHS_MAILBOX_DONE, 0, 0, nullptr);
-    diallingNumberHandler_->GetDiallingNumbers(ELEMENTARY_FILE_MAILBOX_CPHS, ELEMENTARY_FILE_EXT1, 1, cphsEvent);
 }
 
 bool SimFile::ProcessGetMwisDone(const AppExecFwk::InnerEvent::Pointer &event)
@@ -1027,7 +1037,7 @@ bool SimFile::ProcessReloadImsi(const AppExecFwk::InnerEvent::Pointer &event)
     }
     AppExecFwk::InnerEvent::Pointer eventIMSI = BuildCallerInfo(MSG_SIM_OBTAIN_IMSI_DONE);
     telRilManager_->GetImsi(slotId_, eventIMSI);
-    hasRetryGetImsi_ = true;
+    hasReloadImsi_ = true;
     return isFileProcessResponse;
 }
 
@@ -1043,26 +1053,24 @@ bool SimFile::ProcessObtainIMSIDone(const AppExecFwk::InnerEvent::Pointer &event
         TELEPHONY_LOGE("get IMSI fd is nullptr!");
         return isFileProcessResponse;
     }
-    if (sharedObject != nullptr) {
-        imsi_ = *sharedObject;
-        TELEPHONY_LOGI("SimFile::ProcessEvent IMSI received success");
-        SaveCountryCode();
-        TELEPHONY_LOGI("SimFile::ObtainIsoCountryCode result success");
-        if (!imsi_.empty() && filesFetchedObser_ != nullptr) {
-            CheckMncLengthForImsiDone();
-            filesFetchedObser_->NotifyObserver(RadioEvent::RADIO_IMSI_LOADED_READY);
-            FileChangeToExt(imsi_, FileChangeType::G_IMSI_FILE_LOAD);
-        } else {
-            DelayGetImsi();
-        }
+    imsi_ = *sharedObject;
+    TELEPHONY_LOGI("SimFile::ProcessEvent IMSI received success");
+    SaveCountryCode();
+    TELEPHONY_LOGI("SimFile::ObtainIsoCountryCode result success");
+    if (!imsi_.empty() && filesFetchedObser_ != nullptr) {
+        CheckMncLengthForImsiDone();
+        filesFetchedObser_->NotifyObserver(RadioEvent::RADIO_IMSI_LOADED_READY);
+        FileChangeToExt(imsi_, FileChangeType::G_IMSI_FILE_LOAD);
+    } else {
+        ReloadImsiDelay();
     }
     return isFileProcessResponse;
 }
 
-void SimFile::DelayGetImsi()
+void SimFile::ReloadImsiDelay()
 {
-    if (hasRetryGetImsi_) {
-        TELEPHONY_LOGI("DelayGetImsi has retried, slotId = %{public}d", slotId_);
+    if (hasReloadImsi_) {
+        TELEPHONY_LOGI("ReloadImsiDelay has reloaded, slotId = %{public}d", slotId_);
         return;
     }
     fileToGet_++;
@@ -1795,7 +1803,7 @@ bool SimFile::ProcessSetMbdn(const AppExecFwk::InnerEvent::Pointer &event)
         TELEPHONY_LOGI("set voicemail name success");
     }
 
-    if (CphsVoiceMailAvailable()) {
+    if (simFileVoiceMail_->CphsVoiceMailAvailable(*this)) {
         std::shared_ptr<DiallingNumbersInfo> diallingNumberCphs = std::make_shared<DiallingNumbersInfo>();
         std::shared_lock<ffrt::shared_mutex> lock(voiceMailMutex_);
         diallingNumberCphs->name_ = Str8ToStr16(voiceMailNum_);
@@ -1890,206 +1898,36 @@ int SimFile::ObtainExtensionElementaryFile(int ef)
 
 std::string SimFile::GetVoiceMailNumber()
 {
-    std::shared_lock<ffrt::shared_mutex> lock(voiceMailMutex_);
-    return voiceMailNum_;
+    return simFileVoiceMail_->GetVoiceMailNumber(*this);
 }
 
 void SimFile::SetVoiceMailNumber(const std::string mailNumber)
 {
-    std::unique_lock<ffrt::shared_mutex> lock(voiceMailMutex_);
-    voiceMailNum_ = mailNumber;
-}
-
-bool SimFile::VoiceMailNotEditToSim()
-{
-    OperatorConfig operatorConfig;
-    CoreManagerInner::GetInstance().GetOperatorConfigs(slotId_, operatorConfig);
-    bool custVmNotToSim = false;
-    std::map<std::string, bool>::iterator it = operatorConfig.boolValue.find(KEY_VOICE_MAIL_EDIT_NOT_TO_SIM_BOOL);
-    if (it != operatorConfig.boolValue.end()) {
-        custVmNotToSim = it->second;
-    }
-    return custVmNotToSim;
+    simFileVoiceMail_->SetVoiceMailNumber(mailNumber, *this);
 }
 
 bool SimFile::UpdateVoiceMail(const std::string &mailName, const std::string &mailNumber)
 {
-    if (VoiceMailNotEditToSim()) {
-        TELEPHONY_LOGI("SimFile::UpdateVoiceMail, no need to edit voice mail info to sim");
-        return true;
-    }
-    waitResult_ = false;
-    std::shared_ptr<DiallingNumbersInfo> diallingNumber = std::make_shared<DiallingNumbersInfo>();
-    diallingNumber->name_ = Str8ToStr16(mailName);
-    diallingNumber->number_ = Str8ToStr16(mailNumber);
-
-    if ((indexOfMailbox_) && (indexOfMailbox_ != BYTE_NUM)) {
-        std::unique_lock<ffrt::mutex> lock(IccFile::mtx_);
-        TELEPHONY_LOGI("UpdateVoiceMail start MBDN");
-        AppExecFwk::InnerEvent::Pointer event = CreateDiallingNumberPointer(MSG_SIM_SET_MBDN_DONE, 0, 0, nullptr);
-        DiallingNumberUpdateInfor infor;
-        infor.diallingNumber = diallingNumber;
-        infor.fileId = ELEMENTARY_FILE_MBDN;
-        infor.extFile = ELEMENTARY_FILE_EXT6;
-        infor.index = indexOfMailbox_;
-        diallingNumberHandler_->UpdateDiallingNumbers(infor, event);
-        while (!waitResult_) {
-            TELEPHONY_LOGI("update voicemail wait, response = false");
-            if (processWait_.wait_for(lock, std::chrono::seconds(WAIT_TIME_SECOND)) == ffrt::cv_status::timeout) {
-                break;
-            }
-        }
-    } else if (CphsVoiceMailAvailable()) {
-        std::unique_lock<ffrt::mutex> lock(IccFile::mtx_);
-        AppExecFwk::InnerEvent::Pointer event =
-            CreateDiallingNumberPointer(MSG_SIM_SET_CPHS_MAILBOX_DONE, 0, 0, nullptr);
-        DiallingNumberUpdateInfor infor;
-        infor.diallingNumber = diallingNumber;
-        infor.fileId = ELEMENTARY_FILE_MAILBOX_CPHS;
-        infor.extFile = ELEMENTARY_FILE_EXT1;
-        infor.index = 1;
-        diallingNumberHandler_->UpdateDiallingNumbers(infor, event);
-        while (!waitResult_) {
-            TELEPHONY_LOGI("update voicemail wait, response = false");
-            if (processWait_.wait_for(lock, std::chrono::seconds(WAIT_TIME_SECOND)) == ffrt::cv_status::timeout) {
-                break;
-            }
-        }
-    } else {
-        TELEPHONY_LOGE("UpdateVoiceMail indexOfMailbox_ %{public}d is invalid!!", indexOfMailbox_);
-    }
-    TELEPHONY_LOGI("UpdateVoiceMail finished %{public}d", waitResult_);
-    return waitResult_;
+    return simFileVoiceMail_->UpdateVoiceMail(mailName, mailNumber, *this);
 }
 
 bool SimFile::SetVoiceMailCount(int32_t voiceMailCount)
 {
-    bool setDone = false;
-    AppExecFwk::InnerEvent::Pointer eventUpdate = BuildCallerInfo(MSG_SIM_UPDATE_DONE);
-    std::shared_ptr<unsigned char> efMWISData = SIMUtils::HexStringConvertToBytes(efMWISStr_, efMWISSize_);
-    efMWIS_ = efMWISData != nullptr ? efMWISData.get() : nullptr;
-    if (efMWIS_ != nullptr && efMWISSize_ > 1) {
-        // TS 51.011 10.3.45
-        efMWIS_[0] = static_cast<unsigned char>((efMWIS_[0] & BYTE_NUM6) | (voiceMailCount == 0 ? 0 : BYTE_NUM2));
-        efMWIS_[1] = voiceMailCount < 0 ? 0 : static_cast<unsigned char>(voiceMailCount);
-        fileController_->UpdateLinearFixedFile(ELEMENTARY_FILE_MWIS, 1, efMWISStr_, efMWISSize_, "", eventUpdate);
-        setDone = true;
-    }
-    std::shared_ptr<unsigned char> efCphsMwiData = SIMUtils::HexStringConvertToBytes(efCphsMwisStr_, efCphsMwiSize_);
-    efCphsMwi_ = efCphsMwiData != nullptr ? efCphsMwiData.get() : nullptr;
-    if (efCphsMwi_ != nullptr && efCphsMwiSize_ > 1) {
-        efCphsMwi_[0] =
-            static_cast<unsigned char>((efCphsMwi_[0] & BYTE_NUM7) | (voiceMailCount == 0 ? BYTE_NUM5 : BYTE_NUM4));
-        fileController_->UpdateBinaryFile(
-            ELEMENTARY_FILE_VOICE_MAIL_INDICATOR_CPHS, efCphsMwisStr_, efCphsMwiSize_, eventUpdate);
-        setDone = true;
-    }
-    if (setDone) {
-        voiceMailCount_ = voiceMailCount;
-        DelayedRefSingleton<TelephonyStateRegistryClient>::GetInstance().UpdateVoiceMailMsgIndicator(
-            slotId_, voiceMailCount_ > 0);
-        return true;
-    }
-    TELEPHONY_LOGE("SetVoiceMailCount efMWIS_ and efCphsMwi_ is nullptr");
-    return false;
+    return simFileVoiceMail_->SetVoiceMailCount(voiceMailCount, *this);
 }
 
 bool SimFile::SetVoiceCallForwarding(bool enable, const std::string &number)
 {
-    bool setDone = false;
-    AppExecFwk::InnerEvent::Pointer eventUpdate = BuildCallerInfo(MSG_SIM_UPDATE_DONE);
-    std::shared_ptr<unsigned char> efCfisData = SIMUtils::HexStringConvertToBytes(efCfisStr_, efCfisSize_);
-    efCfis_ = efCfisData != nullptr ? efCfisData.get() : nullptr;
-    if (EfCfisAvailable(efCfisSize_)) {
-        if (enable) {
-            efCfis_[1] |= BYTE_NUM2;
-        } else {
-            efCfis_[1] &= BYTE_NUM6;
-        }
-        // Spec reference for EF_CFIS contents, TS 51.011 section 10.3.46.
-        if (enable && !number.empty()) {
-            if (!FillNumber(efCfisData, efCfisSize_, number)) {
-                TELEPHONY_LOGE("fill number failed");
-                return false;
-            }
-        }
-        fileController_->UpdateLinearFixedFile(ELEMENTARY_FILE_CFIS, 1, efCfisStr_, efCfisSize_, "", eventUpdate);
-        setDone = true;
-    }
-    std::shared_ptr<unsigned char> efCffData = SIMUtils::HexStringConvertToBytes(efCffStr_, efCffSize_);
-    efCff_ = efCffData != nullptr ? efCffData.get() : nullptr;
-    if (efCff_ != nullptr && efCffSize_ > 0) {
-        if (enable) {
-            efCff_[0] = static_cast<unsigned char>((efCff_[0] & BYTE_NUM7) | BYTE_NUM4);
-        } else {
-            efCff_[0] = static_cast<unsigned char>((efCff_[0] & BYTE_NUM7) | BYTE_NUM5);
-        }
-        fileController_->UpdateBinaryFile(ELEMENTARY_FILE_CFF_CPHS, efCffStr_, efCffSize_, eventUpdate);
-        setDone = true;
-    }
-    if (setDone) {
-        callForwardingStatus = enable ? CALL_FORWARDING_STATUS_ENABLED : CALL_FORWARDING_STATUS_DISABLED;
-        DelayedRefSingleton<TelephonyStateRegistryClient>::GetInstance().UpdateCfuIndicator(
-            slotId_, callForwardingStatus == CALL_FORWARDING_STATUS_ENABLED);
-        return true;
-    }
-    TELEPHONY_LOGE("SetVoiceCallForwarding efCfis_ and efCff_ is nullptr");
-    return false;
-}
-
-bool SimFile::FillNumber(std::shared_ptr<unsigned char> efCfisData, int32_t efCfisSize, const std::string &number)
-{
-    std::vector<uint8_t> bcdCodes;
-    SimNumberDecode::NumberConvertToBCD(number, bcdCodes, false, SimNumberDecode::BCD_TYPE_ADN);
-    unsigned int dataLength = bcdCodes.size();
-    unsigned char numberData[dataLength];
-    for (unsigned int i = 0; i < dataLength; ++i) {
-        numberData[i] = bcdCodes.at(i);
-    }
-    if (CFIS_TON_NPI_OFFSET + static_cast<int32_t>(dataLength) >= efCfisSize) {
-        TELEPHONY_LOGE("data is invalid");
-        return false;
-    }
-    auto efCfis = efCfisData.get();
-    SIMUtils::ArrayCopy(numberData, 0, efCfis, CFIS_TON_NPI_OFFSET, dataLength);
-    if (CFIS_ADN_EXTENSION_ID_OFFSET >= efCfisSize) {
-        TELEPHONY_LOGE("data is invalid");
-        return false;
-    }
-    efCfis[CFIS_BCD_NUMBER_LENGTH_OFFSET] = static_cast<unsigned char>(dataLength);
-    efCfis[CFIS_ADN_CAPABILITY_ID_OFFSET] = static_cast<unsigned char>(BYTE_NUM);
-    efCfis[CFIS_ADN_EXTENSION_ID_OFFSET] = static_cast<unsigned char>(BYTE_NUM);
-    return true;
-}
-
-bool SimFile::CphsVoiceMailAvailable()
-{
-    bool available = false;
-    if (!cphsInfo_.empty()) {
-        int dataLen = 0;
-        std::shared_ptr<unsigned char> dataByte = SIMUtils::HexStringConvertToBytes(cphsInfo_, dataLen);
-        available = (dataByte != nullptr) ? (dataByte.get()[1] & CPHS_VOICE_MAIL_MASK) == CPHS_VOICE_MAIL_EXSIT : false;
-    }
-    return available;
-}
-
-bool SimFile::EfCfisAvailable(int32_t size)
-{
-    if (efCfis_ != nullptr && size > 1) {
-        for (int32_t i = 0; i < size; ++i) {
-            if (efCfis_[i] != BYTE_NUM) {
-                return true;
-            }
-        }
-    }
-    return false;
+    return simFileVoiceMail_->SetVoiceCallForwarding(enable, number, *this);
 }
 
 void SimFile::ClearData()
 {
     spnStatus_ = OBTAIN_SPN_NONE;
     reloadIccidCount_ = RELOAD_ICCID_COUNT;
-    hasRetryGetImsi_ = false;
+    hasReloadImsi_ = false;
+    lastSerialId_ = telRilManager_->GetCurrentSerialId();
+    TELEPHONY_LOGI("SimFile ClearData lastSerialId_ = %{public}d", lastSerialId_);
     RemoveEvent(SimFile::RELOAD_IMSI_EVENT);
     IccFile::ClearData();
 }
@@ -2145,7 +1983,7 @@ void SimFile::OnParamChanged(const char *key, const char *value, void *context)
         return;
     }
     if (instance->stateManager_->HasSimCard()) {
-        instance->DelayGetImsi();
+        instance->ReloadImsiDelay();
     }
 }
 } // namespace Telephony

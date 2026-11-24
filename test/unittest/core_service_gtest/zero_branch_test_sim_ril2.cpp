@@ -34,6 +34,7 @@
 #include "sim_account_manager.h"
 #include "sim_data_type.h"
 #include "sim_file_controller.h"
+#include "sim_file_voicemail.h"
 #include "sim_manager.h"
 #include "sim_rdb_helper.h"
 #include "sim_sms_manager.h"
@@ -694,11 +695,9 @@ HWTEST_F(SimRilBranchTest2, Telephony_SimFile_Expand009, Function | MediumTest |
     simFile->ProcessMarkSms(event);
     simFile->ProcessObtainSpnPhase(event);
     simFile->ObtainExtensionElementaryFile(0);
-    simFile->VoiceMailNotEditToSim();
     simFile->UpdateVoiceMail("", "");
     simFile->SetVoiceMailCount(3);
     auto cPtr = std::make_shared<unsigned char>(3);
-    simFile->FillNumber(cPtr, 3, "123");
 }
 
 HWTEST_F(SimRilBranchTest2, Telephony_SimFile_Expand010, Function | MediumTest | Level1)
@@ -843,8 +842,6 @@ HWTEST_F(SimRilBranchTest2, Telephony_SimFile_Expand012, Function | MediumTest |
     objectUnique->resultData = "1234";
     event = AppExecFwk::InnerEvent::Get(0, objectUnique);
     simFile->ProcessGetHplmActDone(event);
-
-    simFile->GetCphsMailBox();
 
     event.reset();
     simFile->ProcessReloadIccid(event);

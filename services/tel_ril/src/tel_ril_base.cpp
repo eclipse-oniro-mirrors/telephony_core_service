@@ -66,6 +66,11 @@ int32_t TelRilBase::GetNextSerialId(void)
     return nextSerialId_++;
 }
 
+int32_t TelRilBase::GetCurrentSerialId(void)
+{
+    return nextSerialId_;
+}
+
 std::shared_ptr<TelRilRequest> TelRilBase::FindTelRilRequest(const RadioResponseInfo &responseInfo)
 {
     int32_t serial = responseInfo.serial;

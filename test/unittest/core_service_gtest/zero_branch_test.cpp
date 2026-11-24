@@ -185,7 +185,6 @@ HWTEST_F(BranchTest, Telephony_SimFile_001, Function | MediumTest | Level1)
     simFile->lengthOfMnc_ = UNINITIALIZED_MNC;
     simFile->CheckMncLengthForAdDone();
     simFile->CheckMncLengthForImsiDone();
-    EXPECT_FALSE(simFile->CphsVoiceMailAvailable());
     EXPECT_FALSE(simFile->ProcessIccReady(event));
     EXPECT_TRUE(simFile->ProcessGetAdDone(event));
     EXPECT_TRUE(simFile->ProcessVoiceMailCphs(event));

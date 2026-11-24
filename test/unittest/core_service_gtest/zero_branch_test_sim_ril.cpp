@@ -43,6 +43,7 @@
 #include "want.h"
 #include "sim_constant.h"
 #include "sim_file_parse.h"
+#include "sim_file_voicemail.h"
 #include "usim_file_controller.h"
 #include "tel_ril_manager.h"
 
@@ -1025,10 +1026,10 @@ HWTEST_F(SimRilBranchTest, Telephony_SimFile_001, Function | MediumTest | Level1
     std::string efCfisStr = "1234567890ABCDEF1234567890ABCDEF1234567890ABCDEF";
     std::string number = "123456789111111";
     std::shared_ptr<unsigned char> efCfisData = SIMUtils::HexStringConvertToBytes(efCfisStr, efCfisSize);
-    ASSERT_TRUE(simFile->FillNumber(efCfisData, efCfisSize, number));
+    ASSERT_TRUE(simFile->simFileVoiceMail_->FillNumber(efCfisData, efCfisSize, number, *simFile));
     efCfisStr = "1234";
     efCfisData = SIMUtils::HexStringConvertToBytes(efCfisStr, efCfisSize);
-    ASSERT_FALSE(simFile->FillNumber(efCfisData, efCfisSize, number));
+    ASSERT_FALSE(simFile->simFileVoiceMail_->FillNumber(efCfisData, efCfisSize, number, *simFile));
 }
 
 /**
@@ -1048,7 +1049,7 @@ HWTEST_F(SimRilBranchTest, Telephony_SimFile_002, Function | MediumTest | Level1
     simFile->SetVoiceCallForwarding(enable, number);
     std::vector<std::string> records = { "460000", "01AABBCCDD" };
     simFile->simFileParse_->ParsePnn(records, *simFile);
-    ASSERT_FALSE(simFile->EfCfisAvailable(0));
+    ASSERT_FALSE(simFile->simFileVoiceMail_->EfCfisAvailable(*simFile, 0));
 }
 
 /**

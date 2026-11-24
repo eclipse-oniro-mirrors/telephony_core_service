@@ -90,6 +90,7 @@ protected:
     template<typename T>
     inline int32_t SendEventData(
         const char *funcName, uint32_t eventId, std::shared_ptr<OHOS::AppExecFwk::EventHandler> handler, T data);
+    int32_t GetCurrentSerialId(void);
 
 protected:
     std::shared_ptr<ObserverHandler> observerHandler_;

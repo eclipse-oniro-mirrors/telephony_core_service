@@ -281,6 +281,7 @@ public:
     virtual int32_t GetNrSsbId(int32_t slotId, const AppExecFwk::InnerEvent::Pointer &response) = 0;
     virtual int32_t GetPrimarySlot(int32_t slotId, const AppExecFwk::InnerEvent::Pointer &response) = 0;
     virtual int32_t SetPrimarySlot(int32_t slotId, const AppExecFwk::InnerEvent::Pointer &response) = 0;
+    virtual int32_t GetCurrentSerialId() = 0;
 };
 } // namespace Telephony
 } // namespace OHOS

@@ -51,6 +51,7 @@ struct IccFileData {
     int32_t sw2 = 0;
     std::string resultData = "";
     std::shared_ptr<void> exception = nullptr;
+    int32_t serialId = 0;
 };
 
 struct FileToControllerMsg {
@@ -72,6 +73,7 @@ struct ControllerToFileMsg : public FileToControllerMsg, IccFileData {
             sw2 = fd->sw2;
             resultData = fd->resultData;
             exception = fd->exception;
+            serialId = fd->serialId;
         }
     }
 };

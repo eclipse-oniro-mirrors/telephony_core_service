@@ -231,6 +231,7 @@ public:
         const AppExecFwk::InnerEvent::Pointer &));
     MOCK_METHOD4(SendEmcRescueMessage, int32_t(int32_t, int32_t, std::string &,
         const AppExecFwk::InnerEvent::Pointer &));
+    MOCK_METHOD0(GetCurrentSerialId, int32_t());
 };
 } // namespace Telephony
 } // namespace OHOS

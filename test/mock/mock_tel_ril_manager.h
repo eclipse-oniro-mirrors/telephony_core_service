@@ -221,6 +221,7 @@ public:
     MOCK_METHOD2(GetNrSsbId, int32_t(int32_t, const AppExecFwk::InnerEvent::Pointer &));
     MOCK_METHOD2(GetPrimarySlot, int32_t(int32_t, const AppExecFwk::InnerEvent::Pointer &));
     MOCK_METHOD2(SetPrimarySlot, int32_t(int32_t, const AppExecFwk::InnerEvent::Pointer &));
+    MOCK_METHOD0(GetCurrentSerialId, int32_t());
 };
 } // namespace Telephony
 } // namespace OHOS

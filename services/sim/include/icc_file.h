@@ -119,6 +119,7 @@ public:
     {
         operatorConfigHisysevent_ = operatorConfigHisysevent;
     };
+    int32_t GetLastSerialId();
 
 protected:
     virtual void ProcessFileLoaded(bool response) = 0;
@@ -216,6 +217,7 @@ protected:
     ffrt::shared_mutex voiceMailMutex_;
     bool isOnOpkeyLoaded_{false};
     bool isSimRecordLoaded_{false};
+    int32_t lastSerialId_ = 0;
 
 private:
     std::atomic<bool> isVoiceMailFixed_{false};

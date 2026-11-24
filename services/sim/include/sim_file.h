@@ -22,6 +22,7 @@ namespace OHOS {
 namespace Telephony {
 class SimFileInit;
 class SimFileParse;
+class SimFileVoiceMail;
 class SimFile : public IccFile {
 public:
     explicit SimFile(std::shared_ptr<SimStateManager> simStateManager);
@@ -140,7 +141,7 @@ private:
     bool ProcessObtainPlLanguage(const AppExecFwk::InnerEvent::Pointer &event);
     bool ProcessReloadIccid(const AppExecFwk::InnerEvent::Pointer &event);
     bool ProcessReloadImsi(const AppExecFwk::InnerEvent::Pointer &event);
-    void DelayGetImsi();
+    void ReloadImsiDelay();
     bool ProcessGetSpnCphsDone(const AppExecFwk::InnerEvent::Pointer &event);
     bool ProcessGetSpnShortCphsDone(const AppExecFwk::InnerEvent::Pointer &event);
     void StartObtainSpn();
@@ -165,15 +166,10 @@ private:
     const int SPN_CHAR_POS = 0;
     const int MAIL_DELAY_TIME = 50 * 1000;
     const int RELOAD_ICCID_COUNT = 3;
-    bool hasRetryGetImsi_ = false;
+    bool hasReloadImsi_ = false;
     static const uint8_t CPHS_VOICE_MAIL_MASK = 0x30;
     static const uint8_t CPHS_VOICE_MAIL_EXSIT = 0x30;
     int ObtainExtensionElementaryFile(int ef);
-    bool CphsVoiceMailAvailable();
-    bool EfCfisAvailable(int32_t size);
-    void GetCphsMailBox();
-    bool FillNumber(std::shared_ptr<unsigned char> efCfisData, int32_t efCfisSize, const std::string &number);
-    bool VoiceMailNotEditToSim();
     bool IsAvailable(uint8_t offset, uint8_t mask);
     bool IsSimServiceAvailable(UsimService service);
     bool IsUsimServiceAvailable(UsimService service);
@@ -182,6 +178,8 @@ private:
     std::shared_ptr<SimFileInit> simFileInit_;
     friend class SimFileParse;
     std::shared_ptr<SimFileParse> simFileParse_;
+    friend class SimFileVoiceMail;
+    std::shared_ptr<SimFileVoiceMail> simFileVoiceMail_;
     std::string serviceTable_;
 };
 } // namespace Telephony

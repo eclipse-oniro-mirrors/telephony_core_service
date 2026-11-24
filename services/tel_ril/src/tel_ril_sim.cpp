@@ -140,6 +140,7 @@ int32_t TelRilSim::ProcessIccIoInfo(
     object->fileData.resultData = iccIoResult->response;
     object->fileData.sw1 = iccIoResult->sw1;
     object->fileData.sw2 = iccIoResult->sw2;
+    object->fileData.serialId = telRilRequest->serialId_;
     object->controlHolder = toMsg->controlHolder;
     object->arg1 = toMsg->arg1;
     object->arg2 = toMsg->arg2;
@@ -624,6 +625,11 @@ int32_t TelRilSim::GetPrimarySlotResponse(const HDI::Ril::V1_1::RilRadioResponse
 int32_t TelRilSim::SetPrimarySlotResponse(const HDI::Ril::V1_1::RilRadioResponseInfo &responseInfo)
 {
     return Response(TELEPHONY_LOG_FUNC_NAME, responseInfo);
+}
+
+int32_t TelRilSim::GetCurrentSerialId(void)
+{
+    return TelRilBase::GetCurrentSerialId();
 }
 } // namespace Telephony
 } // namespace OHOS

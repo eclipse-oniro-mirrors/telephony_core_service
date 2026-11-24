@@ -591,5 +591,23 @@ HWTEST_F(TelRilCommonTest, TelRilData_NetworkSliceEhplmnRpt_001, Function | Medi
     auto result = telRilData->NetworkSliceEhplmnRpt(networksliceEhplmnInfo);
     ASSERT_EQ(result, TELEPHONY_ERR_SUCCESS);
 }
+
+/**
+ * @tc.number   TelRilManager_GetCurrentSerialId_001
+ * @tc.name     test GetCurrentSerialId delegates to slot0 TelRilSim
+ * @tc.desc     Populate telRilSim_ and verify GetCurrentSerialId returns the
+ *              SIM_SLOT_0 TelRilSim serial id (covers the SIM_SLOT_0 lookup path)
+ */
+HWTEST_F(TelRilCommonTest, TelRilManager_GetCurrentSerialId_001, Function | MediumTest | Level1)
+{
+    auto telRilManager = std::make_shared<TelRilManager>();
+    auto rilInterface = HDI::Ril::V1_5::IRil::Get();
+    std::shared_ptr<ObserverHandler> observerHandler = std::make_shared<ObserverHandler>();
+    auto telRilSim = std::make_shared<TelRilSim>(SIM_SLOT_0, rilInterface, observerHandler, nullptr);
+    telRilManager->telRilSim_.clear();
+    telRilManager->telRilSim_.push_back(telRilSim);
+    int32_t result = telRilManager->GetCurrentSerialId();
+    ASSERT_EQ(result, telRilSim->GetCurrentSerialId());
+}
 } // namespace Telephony
 } // namespace OHOS

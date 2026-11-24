@@ -1147,5 +1147,10 @@ bool TelRilManager::DisConnectRilInterface()
     TELEPHONY_LOGD("TelRilManager::DisConnectRilInterface, disconnect riladapter service successfully");
     return true;
 }
+
+int32_t TelRilManager::GetCurrentSerialId()
+{
+    return GetTelRilSim(SIM_SLOT_0)->GetCurrentSerialId();
+}
 } // namespace Telephony
 } // namespace OHOS
