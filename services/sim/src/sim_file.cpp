@@ -1062,7 +1062,7 @@ bool SimFile::ProcessObtainIMSIDone(const AppExecFwk::InnerEvent::Pointer &event
         filesFetchedObser_->NotifyObserver(RadioEvent::RADIO_IMSI_LOADED_READY);
         FileChangeToExt(imsi_, FileChangeType::G_IMSI_FILE_LOAD);
     } else {
-            ReloadImsiDelay();
+        ReloadImsiDelay();
         }
     return isFileProcessResponse;
 }
