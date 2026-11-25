@@ -693,6 +693,7 @@ bool NapiUtil::CreateStateRegistryErrorMessageForJs(int32_t errorCode, JsErrorCo
             jsErrorCode = JS_ERROR_ILLEGAL_USE_OF_SYSTEM_API;
             break;
         case ERROR_SLOT_ID_INVALID:
+        case TELEPHONY_STATE_REGISTRY_SLODID_ERROR:
             jsErrorCode = JS_ERROR_STATE_REGISTRY_ARGUMENT_ERROR;
             break;
         default:
