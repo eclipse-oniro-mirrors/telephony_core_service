@@ -131,7 +131,7 @@ static constexpr const char *HIDDEN_CAMERA_DETECTION = "ohos.permission.HIDDEN_C
 class TelephonyPermission {
 public:
     /**
-     * @brief Permission check by callingUid.
+     * @brief Permission check by callingAppUid.
      *
      * @param permissionName permission name.
      * @return Return {@code true} on success, {@code false} on failure.
@@ -139,13 +139,13 @@ public:
     static bool CheckPermission(const std::string &permissionName);
 
     /**
-     * @brief Get bundleName by callingUid.
+     * @brief Get bundleName by callingAppUid.
      *
-     * @param callingUid.
+     * @param callingAppUid.
      * @param bundleName.
      * @return Return {@code true} on success, {@code false} on failure.
      */
-    static bool GetBundleNameByUid(int32_t uid, std::string &bundleName);
+    static bool GetBundleNameByUid(int32_t callingAppUid, std::string &bundleName);
 
     /**
      * @brief Check if the caller is System App.
