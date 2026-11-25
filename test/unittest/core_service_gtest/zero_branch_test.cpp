@@ -1941,6 +1941,13 @@ HWTEST_F(BranchTest, Telephony_SIMUtils_004, Function | MediumTest | Level1)
     EXPECT_EQ(simUtils->Cphs7bitConvertToString(str1), "TEST^{}\\[~]|TEST");
 }
 
+HWTEST_F(BranchTest, Telephony_SIMUtils_005, Function | MediumTest | Level1)
+{
+    auto simUtils = std::make_shared<SIMUtils>();
+    std::string str1 = "FFFFFFFFFFBFFFFF00F7FFFF00FFFFFF";
+    EXPECT_EQ(simUtils->Cphs7bitConvertToString(str1), "");
+}
+
 /**
  * @tc.number   Telephony_SimNumberDecode_001
  * @tc.name     test error branch

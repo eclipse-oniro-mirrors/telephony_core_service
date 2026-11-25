@@ -209,52 +209,53 @@ std::string SIMUtils::Gsm7bitConvertToString(const unsigned char *bytes, int byt
     return ToUtf8(wide_str);
 }
 
+wchar_t SIMUtils::Cphs7bitDecodeChar(unsigned int gsmVal, bool &escTag)
+{
+    if (gsmVal == 0x1B) { // 1B is the ESC tag refer to GSM 03.38
+        if (!escTag) {
+            escTag = true;
+            return L'\0';
+        }
+        escTag = false; // Two escape chars in a row We treat this as a space
+                        // See Note 1 in table 6.2.1 of TS 23.038 v7.00
+        return L' ';
+    }
+    wchar_t c = LANGUAGE_TABLE[gsmVal];
+    if (escTag) {
+        auto it = LANGUAGE_EXT_TABLE_MAP.find(static_cast<int>(gsmVal));
+        if (it != LANGUAGE_EXT_TABLE_MAP.end()) {
+            c = it->second;
+        }
+        escTag = false;
+    }
+    return c;
+}
+
 std::string SIMUtils::Cphs7bitConvertToString(const std::string &rawData)
 {
     if (rawData.empty()) {
         return "";
     }
     const char *bytes = rawData.c_str();
+    size_t byteLen = strlen(bytes);
+    const size_t tableSize = sizeof(LANGUAGE_TABLE) / sizeof(LANGUAGE_TABLE[0]);
     std::wstring wide_str = L"";
-    int high = 0;
-    int low = 0;
-    int gsmVal = 0;
-    int byteLen = strlen(bytes);
+    
     bool escTag = false;
-    wchar_t c;
-    for (int i = 0; i < byteLen; i++) {
-        low = (int)HexCharConvertToInt(bytes[i]);
-        if (i + 1 < byteLen) {
-            high = (int)HexCharConvertToInt(bytes[i + 1]);
-        } else {
+    for (size_t i = 0; i + 1 < byteLen; i += WORD_LEN) {
+        unsigned int low = HexCharConvertToInt(bytes[i]);
+        unsigned int high = HexCharConvertToInt(bytes[i + 1]);
+        unsigned int gsmVal = (low << HALF_BYTE_LEN) | high; // 16 is the hex val max
+        // 0xFF is the RFU/padding value in GSM 7-bit default alphabet,
+        // stop parsing when encountering it (aligned with TS 23.038 gsm8BitUnpackedToString).
+        if (gsmVal == BYTE_VALUE) {
             break;
         }
-        gsmVal = low * 16 + high; // 16 is the hex val max
-        i++;
-        if (gsmVal < 0 || gsmVal >= static_cast<int>(sizeof(LANGUAGE_TABLE) / sizeof(LANGUAGE_TABLE[0]))) {
+        if (gsmVal >= tableSize) {
             continue;
         }
-        if (!escTag && gsmVal == 0x1B) { // 1B is the ESC tag refer to GSM 03.38;
-            escTag = true;
-            continue;
-        } else if (escTag && gsmVal == 0x1B) { // Two escape chars in a row We treat this as a space
-                                               // See Note 1 in table 6.2.1 of TS 23.038 v7.00
-            escTag = false;
-            c = ' ';
-            wide_str += c;
-            continue;
-        }
-        if (escTag == true) {
-            if (LANGUAGE_EXT_TABLE_MAP.find(gsmVal) != LANGUAGE_EXT_TABLE_MAP.end()) {
-                c = LANGUAGE_EXT_TABLE_MAP.at(gsmVal);
-                wide_str += c;
-            } else {
-                c = LANGUAGE_TABLE[gsmVal];
-                wide_str += c;
-            }
-            escTag = false;
-        } else {
-            c = LANGUAGE_TABLE[gsmVal];
+        wchar_t c = Cphs7bitDecodeChar(gsmVal, escTag);
+        if (c != L'\0') {
             wide_str += c;
         }
     }

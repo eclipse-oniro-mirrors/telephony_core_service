@@ -75,7 +75,7 @@ static const std::map<int, wchar_t> LANGUAGE_EXT_TABLE_MAP = {
     { 0x3D, '~' },
     { 0x3E, ']' },
     { 0x40, '|' },
-    { 0x65, L'\u00ac' },
+    { 0x65, L'\u20ac' },
 };
 // TS 24.008 Section 10.5.3.5a Network Name
 enum {
@@ -117,6 +117,7 @@ private:
     static std::u16string UcsConvertToString(unsigned char *data, int length, int offset);
     static std::u16string UcsWideConvertToString(unsigned char *data, int length, int offset);
     static std::string Decode8BitConvertToString(unsigned char *data, int length, int offset);
+    static wchar_t Cphs7bitDecodeChar(unsigned int gsmVal, bool &escTag);
 };
 } // namespace Telephony
 } // namespace OHOS
