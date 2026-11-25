@@ -106,8 +106,8 @@ std::shared_ptr<Asn1Node> Asn1Decoder::BuildAsn1Node(const uint32_t tag, uint32_
         offset += lenLen;
     }
     if (offset > end_ || dataLen > end_ - offset) {
-        TELEPHONY_LOGE("Incomplete data at position: offset=%{public}u, dataLen=%{public}u, leftLength=%{public}u.",
-            offset, dataLen, (end_ - offset));
+        TELEPHONY_LOGE("Incomplete data at position: offset=%{public}u, dataLen=%{public}u, end=%{public}u.",
+            offset, dataLen, end_);
         return nullptr;
     }
     std::vector<uint8_t> byteStream(srcData_.begin() + offset, srcData_.begin() + offset + dataLen);
