@@ -240,7 +240,6 @@ std::string SIMUtils::Cphs7bitConvertToString(const std::string &rawData)
     size_t byteLen = strlen(bytes);
     const size_t tableSize = sizeof(LANGUAGE_TABLE) / sizeof(LANGUAGE_TABLE[0]);
     std::wstring wide_str = L"";
-    
     bool escTag = false;
     for (size_t i = 0; i + 1 < byteLen; i += WORD_LEN) {
         unsigned int low = HexCharConvertToInt(bytes[i]);
