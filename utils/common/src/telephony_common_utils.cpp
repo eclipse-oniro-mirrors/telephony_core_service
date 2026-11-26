@@ -47,11 +47,11 @@ bool ConvertStrToLong(const std::string &str, int64_t &value, uint8_t base)
 
 std::string GetBundleName()
 {
-    int32_t uid = IPCSkeleton::GetCallingUid();
+    int32_t callingAppUid = IPCSkeleton::GetCallingAppUid();
     std::string bundleName = "";
-    TelephonyPermission::GetBundleNameByUid(uid, bundleName);
+    TelephonyPermission::GetBundleNameByUid(callingAppUid, bundleName);
     if (bundleName.empty()) {
-        bundleName.append(std::to_string(uid));
+        bundleName.append(std::to_string(callingAppUid));
         bundleName.append(std::to_string(IPCSkeleton::GetCallingPid()));
     }
     return bundleName;

@@ -30,12 +30,12 @@ namespace Telephony {
 using namespace Security::AccessToken;
 
 /**
- * @brief Get bundleName by callingUid.
- * @param callingUid.
+ * @brief Get bundleName by callingAppUid.
+ * @param callingAppUid.
  * @param bundleName.
  * @return Returns true on success, false on failure.
  */
-bool TelephonyPermission::GetBundleNameByUid(int32_t uid, std::string &bundleName)
+bool TelephonyPermission::GetBundleNameByUid(int32_t callingAppUid, std::string &bundleName)
 {
     auto systemAbilityManager = SystemAbilityManagerClient::GetInstance().GetSystemAbilityManager();
     if (systemAbilityManager == nullptr) {
@@ -53,7 +53,7 @@ bool TelephonyPermission::GetBundleNameByUid(int32_t uid, std::string &bundleNam
         return false;
     }
     std::string identity = IPCSkeleton::ResetCallingIdentity();
-    ErrCode errCode = iBundleMgr->GetNameForUid(uid, bundleName);
+    ErrCode errCode = iBundleMgr->GetNameForUid(callingAppUid, bundleName);
     IPCSkeleton::SetCallingIdentity(identity);
     if (errCode != ERR_OK) {
         TELEPHONY_LOGE("get name for uid failed, error code : %{public}d", errCode);
@@ -63,7 +63,7 @@ bool TelephonyPermission::GetBundleNameByUid(int32_t uid, std::string &bundleNam
 }
 
 /**
- * @brief Permission check by callingUid.
+ * @brief Permission check by callingAppUid.
  * @param permissionName permission name.
  * @return Returns true on success, false on failure.
  */
